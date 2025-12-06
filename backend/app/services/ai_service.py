@@ -334,37 +334,10 @@ async def simulate_debate_streaming(query, history, company_info, image_base64=N
     # --- 0.5 WEB SEARCH & OPTION EXTRACTION ---
     yield {"type": "typing", "agent": "Sistem"}
     
-    # Analyze Query to Determine Voting Options (Smart Extraction)
-    # Use Moderator or first agent to decide if this is Yes/No or Multi-Choice
-    option_extract_prompt = f"""
-    GÖREV: Kullanıcının tartışma konusunu analiz et ve oylama için SEÇENEKLERİ belirle.
+    # NOTE: Voting options are now determined AFTER the debate ends, 
+    # based on actual arguments made during discussion.
+    # This prevents "tunnel vision" on open-ended questions.
     
-    KONU: {query}
-    
-    KURALLAR:
-    1. Eğer soru "Satın almalı mıyım?", "Yapmalı mıyım?" gibi bir KARAR sorusuysa: ["YAP (Satın Al)", "YAPMA (Gerek Yok)"] gibi net eylem içeren seçenekler döndür.
-    2. Eğer soru "A mı B mi?" sorusuysa: ["A", "B", "HİÇBİRİ"] döndür.
-    3. Eğer soru açık uçluysa (Örn: "Stratejim ne olmalı?"): ["Agresif Büyüme", "Maliyet Odaklılık", "Mevcudu Koru"] gibi somut strateji isimleri üret. ASLA "SEÇENEK 1" YAZMA.
-    4. Çıktı SADECE JSON formatında bir liste olsun: ["Seçenek İsmi 1", "Seçenek İsmi 2", ...]
-    """
-    
-    try:
-        opt_response = debaters[0].generate_response([{"role": "user", "content": option_extract_prompt}])
-        voting_options = json.loads(opt_response.replace("```json", "").replace("```", "").strip())
-        
-        # Fallback if AI returns generic options despite instructions
-        if any("SEÇENEK" in opt.upper() or "OPTION" in opt.upper() for opt in voting_options):
-             voting_options = ["EVET", "HAYIR"]
-             
-    except:
-        voting_options = ["EVET", "HAYIR"]
-        if not isinstance(voting_options, list):
-            voting_options = ["KABUL", "RED"]
-
-    voting_options_str = ", ".join(voting_options)
-    system_msg_content = f"🎯 **Oylama Seçenekleri Belirlendi:** {voting_options_str}"
-    save_to_db("system", system_msg_content)
-    yield {"type": "message", "role": "Sistem", "content": system_msg_content, "is_agent": False}
 
     # --- 1. WEBSITE ANALYSIS ---
     website_url = company_info.get('website_url')
@@ -659,7 +632,45 @@ async def simulate_debate_streaming(query, history, company_info, image_base64=N
             # --- VOTING ROUND ---
             yield {"type": "typing", "agent": "Sistem"}
             await asyncio.sleep(1)
-            yield {"type": "message", "role": "Sistem", "content": "🏁 Tartışma Sona Erdi. Oylama Başlıyor...", "is_agent": False}
+            yield {"type": "message", "role": "Sistem", "content": "🏁 Tartışma Sona Erdi. Seçenekler Belirleniyor...", "is_agent": False}
+            
+            # --- EXTRACT VOTING OPTIONS FROM DEBATE ---
+            # Summarize all arguments to create meaningful options
+            debate_summary = "\n".join([m['content'] for m in messages[-10:] if m.get('role') == 'assistant'])
+            
+            option_extract_prompt = f"""
+            GÖREV: Aşağıdaki tartışmayı analiz et ve OY VERİLEBİLECEK somut seçenekler çıkar.
+            
+            KONU: {query}
+            
+            TARTIŞMA ÖZETİ:
+            {debate_summary[:2000]}
+            
+            KURALLAR:
+            1. Tartışmada öne çıkan FARKLI görüşleri/önerileri seçenek olarak belirle.
+            2. Eğer tartışmada somut rakamlar verilmişse (Örn: "700 USD", "2000 USD"), bunları seçeneklere dahil et.
+            3. Eğer karar Evet/Hayır'a indirgenebiliyorsa, sadece 2 seçenek yaz.
+            4. Açık uçlu sorularda, tartışmada ortaya çıkan farklı stratejileri/yaklaşımları listele.
+            5. Maksimum 4, minimum 2 seçenek olsun.
+            6. Çıktı SADECE JSON formatında bir liste olsun: ["Seçenek 1", "Seçenek 2", ...]
+            
+            ÖNEMLİ: Seçenekler TARTIŞMADAN çıkmalı, uydurma olmamalı.
+            """
+            
+            try:
+                opt_response = moderator.generate_response([{"role": "user", "content": option_extract_prompt}])
+                voting_options = json.loads(opt_response.replace("```json", "").replace("```", "").strip())
+                
+                # Validate
+                if not isinstance(voting_options, list) or len(voting_options) < 2:
+                    voting_options = ["KABUL", "RED"]
+            except:
+                voting_options = ["KABUL", "RED"]
+
+            voting_options_str = ", ".join(voting_options)
+            system_msg_content = f"🎯 **Oylama Seçenekleri:** {voting_options_str}"
+            save_to_db("system", system_msg_content)
+            yield {"type": "message", "role": "Sistem", "content": system_msg_content, "is_agent": False}
             
             votes = []
             
