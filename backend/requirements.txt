@@ -6,3 +6,8 @@ google-generativeai
 supabase
 pydantic
 groq
+chromadb
+duckduckgo-search
+beautifulsoup4
+requests
+httpx
