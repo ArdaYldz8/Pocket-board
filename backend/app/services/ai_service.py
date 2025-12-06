@@ -475,8 +475,6 @@ async def simulate_debate_streaming(query, history, company_info, image_base64=N
         ŞU ANA KADAR KONUŞULANLAR (TEKRAR ETME!):
         {prev_args_text}
         
-        OYLAMA SEÇENEKLERİ: {voting_options_str}
-        
         SEN: {debater.name}
         GİZLİ ROLÜN: {debater.persona}
         KONU: {query}
