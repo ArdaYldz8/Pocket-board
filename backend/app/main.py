@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.app.api import chat
+from app.api import chat
 
 app = FastAPI(title="KVP Konsey API")
 
