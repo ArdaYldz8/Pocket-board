@@ -1,6 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import chat
+
+# Dual-compatible import for local and Render deployment
+try:
+    from backend.app.api import chat  # Local development
+except ImportError:
+    from app.api import chat  # Render deployment
 
 app = FastAPI(title="KVP Konsey API")
 

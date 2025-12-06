@@ -2,11 +2,17 @@ from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
-from app.services.ai_service import simulate_debate_streaming
-from app.services.auth_service import get_current_user, supabase, supabase_admin
 import os
 import json
 import asyncio
+
+# Dual-compatible imports for local and Render deployment
+try:
+    from backend.app.services.ai_service import simulate_debate_streaming
+    from backend.app.services.auth_service import get_current_user, supabase, supabase_admin
+except ImportError:
+    from app.services.ai_service import simulate_debate_streaming
+    from app.services.auth_service import get_current_user, supabase, supabase_admin
 
 router = APIRouter()
 

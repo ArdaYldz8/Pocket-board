@@ -23,12 +23,16 @@ env_path = Path(__file__).resolve().parent.parent.parent.parent / '.env'
 load_dotenv(dotenv_path=env_path)
 
 # Import Supabase Client from auth_service
+# Dual-compatible imports for local and Render deployment
 try:
     from backend.app.services.auth_service import supabase, supabase_admin
 except ImportError:
-    # Fallback/Mock for local dev if needed
-    supabase_admin = None
-    pass
+    try:
+        from app.services.auth_service import supabase, supabase_admin
+    except ImportError:
+        supabase = None
+        supabase_admin = None
+        print("WARNING: auth_service could not be imported")
 
 # --- HELPER FUNCTIONS ---
 
