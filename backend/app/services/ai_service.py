@@ -316,11 +316,11 @@ def get_debaters(company_info):
         )
     ]
     
-    # Moderator Agent (The Chairman) - Uses a smart model for logical oversight
+    # Moderator Agent (The Chairman) - Uses the BEST model for critical oversight
     moderator = AIModel(
         name="Orion (Moderatör)",
         provider="openai",
-        model_name="gpt-4o-mini",
+        model_name="gpt-5-mini",
         persona="Başkan (The Chairman): Masaya yumruğunu vuran sert bir yöneticisin. Tartışma kısır döngüye girerse (örn: sürekli maliyet konuşulursa) konuyu ZORLA değiştir. Kibar olma, otoriter ol. Hedefin karara varmak."
     )
     
