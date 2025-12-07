@@ -169,10 +169,12 @@ class AIModel:
             content = ""
             if self.provider == "openai":
                 client = OpenAI(api_key=self.api_key)
+                # GPT-5 models only support temperature=1
+                temp = 1.0 if "gpt-5" in self.model_name else 0.8
                 response = client.chat.completions.create(
                     model=self.model_name,
                     messages=messages,
-                    temperature=0.8
+                    temperature=temp
                 )
                 content = response.choices[0].message.content
             
