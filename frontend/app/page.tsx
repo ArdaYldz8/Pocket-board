@@ -639,7 +639,7 @@ function BoardContent() {
             <div className="flex justify-center py-4">
               <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-sm border border-slate-100 text-sm text-slate-500 animate-pulse">
                 <Bot className="w-4 h-4" />
-                Konsey üyeleri düşünüyor...
+                {language === 'tr' ? 'Konsey üyeleri düşünüyor...' : 'Board members are thinking...'}
               </div>
             </div>
           )}
@@ -651,43 +651,51 @@ function BoardContent() {
           {showContextPanel && (
             <div className="max-w-3xl mx-auto mb-4 bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
               <div className="flex justify-between items-center mb-2">
-                <h4 className="text-sm font-bold text-slate-700">📊 Tartışma Bağlamı (Opsiyonel)</h4>
+                <h4 className="text-sm font-bold text-slate-700">
+                  📊 {language === 'tr' ? 'Tartışma Bağlamı (Opsiyonel)' : 'Discussion Context (Optional)'}
+                </h4>
                 <button
                   type="button"
                   onClick={() => setShowContextPanel(false)}
                   className="text-xs text-slate-400 hover:text-slate-600"
                 >
-                  Kapat
+                  {language === 'tr' ? 'Kapat' : 'Close'}
                 </button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">💰 Bütçe Tahmini</label>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    💰 {language === 'tr' ? 'Bütçe Tahmini' : 'Budget Estimate'}
+                  </label>
                   <input
                     type="text"
                     value={contextDetails.budget}
                     onChange={(e) => setContextDetails({ ...contextDetails, budget: e.target.value })}
-                    placeholder="Örn: Max 50.000 TL"
+                    placeholder={language === 'tr' ? 'Örn: Max 50.000 TL' : 'E.g.: Max $50,000'}
                     className="w-full p-2 text-sm bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">⏱️ Zaman Çizelgesi</label>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    ⏱️ {language === 'tr' ? 'Zaman Çizelgesi' : 'Timeline'}
+                  </label>
                   <input
                     type="text"
                     value={contextDetails.timeline}
                     onChange={(e) => setContextDetails({ ...contextDetails, timeline: e.target.value })}
-                    placeholder="Örn: 3 ay içinde"
+                    placeholder={language === 'tr' ? 'Örn: 3 ay içinde' : 'E.g.: Within 3 months'}
                     className="w-full p-2 text-sm bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">⚠️ Kısıtlamalar</label>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    ⚠️ {language === 'tr' ? 'Kısıtlamalar' : 'Constraints'}
+                  </label>
                   <input
                     type="text"
                     value={contextDetails.constraints}
                     onChange={(e) => setContextDetails({ ...contextDetails, constraints: e.target.value })}
-                    placeholder="Örn: Ek personel alamayız"
+                    placeholder={language === 'tr' ? 'Örn: Ek personel alamayız' : 'E.g.: Cannot hire new staff'}
                     className="w-full p-2 text-sm bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   />
                 </div>
