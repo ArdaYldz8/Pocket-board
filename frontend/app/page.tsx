@@ -112,10 +112,20 @@ function BoardContent() {
     checkUserAndOrg();
   }, [router]);
 
-  const [messages, setMessages] = useState<Message[]>([
-    { role: 'system', content: language === 'tr' ? 'Pocket Board\'a Hoş Geldiniz. Konuyu belirleyin, yönetim kurulunun tartışmasını izleyin.' : 'Welcome to Pocket Board. Set the topic and watch your board of directors debate.' }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [votes, setVotes] = useState<Vote[] | null>(null);
+
+  // Initialize welcome message based on language
+  useEffect(() => {
+    if (messages.length === 0 || (messages.length === 1 && messages[0].role === 'system')) {
+      setMessages([{
+        role: 'system',
+        content: language === 'tr'
+          ? 'Pocket Board\'a Hoş Geldiniz. Konuyu belirleyin, yönetim kurulunun tartışmasını izleyin.'
+          : 'Welcome to Pocket Board. Set the topic and watch your board of directors debate.'
+      }]);
+    }
+  }, [language]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -414,7 +424,9 @@ function BoardContent() {
               {companyInfo.name || 'AI Arena Paneli'}
             </h1>
             <p className="text-xs text-slate-500 font-medium">
-              {companyInfo.businessModel ? `${companyInfo.businessModel} • Aktif Oturum` : 'Bağlam Bekleniyor'}
+              {companyInfo.businessModel
+                ? `${companyInfo.businessModel} • ${language === 'tr' ? 'Aktif Oturum' : 'Active Session'}`
+                : (language === 'tr' ? 'Bağlam Bekleniyor' : 'Waiting for Context')}
             </p>
           </div>
           {/* Right Header Actions if needed */}
