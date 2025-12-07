@@ -277,7 +277,8 @@ function BoardContent() {
             website_url: companyInfo.websiteUrl
           },
           image: selectedImage,
-          conversation_id: conversationId
+          conversation_id: conversationId,
+          language: language
         }),
       });
 

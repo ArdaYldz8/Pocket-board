@@ -235,7 +235,7 @@ class AIModel:
             masked_key = f"{self.api_key[:15]}..." if self.api_key else "None"
             return f"Error ({self.name}): [Key: {masked_key}] {str(e)}"
 
-def get_debaters(company_info):
+def get_debaters(company_info, language="tr"):
     c_name = company_info.get("name", "Şirket")
     c_industry = company_info.get("industry", "Genel")
     c_employees = company_info.get("employee_count", "Bilinmiyor")
@@ -268,6 +268,8 @@ def get_debaters(company_info):
     ÖNEMLİ:
     - Bir önceki konuşmacının verdiği RASTGELE SAYILARI (Örn: $2.5M kar, %75 dönüşüm) gerçekmiş gibi tekrarlama.
     - Eğer kaynakta yoksa, bu sayıların "tahmini" veya "uydurma" olduğunu yüzüne vur.
+    
+    🌐 DİL KURALI: Kullanıcının sorusu hangi dildeyse, MUTLAKA O DİLDE cevap ver. Eğer soru İngilizce ise İngilizce, Türkçe ise Türkçe cevap ver.
     """
 
     debaters = [
@@ -328,8 +330,8 @@ def get_debaters(company_info):
     
     return debaters, moderator, CONTEXT
 
-async def simulate_debate_streaming(query, history, company_info, image_base64=None, api_key=None, conversation_id=None):
-    debaters, moderator, context = get_debaters(company_info)
+async def simulate_debate_streaming(query, history, company_info, image_base64=None, api_key=None, conversation_id=None, language="tr"):
+    debaters, moderator, context = get_debaters(company_info, language)
     
     # Helper to save to DB asynchronously
     def save_to_db(role, content, agent_name=None):
