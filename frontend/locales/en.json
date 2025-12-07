@@ -1,0 +1,66 @@
+{
+    "common": {
+        "welcome": "Welcome to Pocket Board",
+        "welcomeSubtitle": "Set the topic and watch your board of directors debate.",
+        "login": "Login",
+        "register": "Register",
+        "logout": "Logout",
+        "email": "Email",
+        "password": "Password",
+        "fullName": "Full Name",
+        "submit": "Submit",
+        "loading": "Loading...",
+        "noAccount": "Don't have an account?",
+        "hasAccount": "Already have an account?"
+    },
+    "sidebar": {
+        "title": "Pocket Board",
+        "newChat": "New Chat",
+        "settings": "Settings",
+        "team": "Team",
+        "conversations": "Conversations",
+        "noConversations": "No conversations yet"
+    },
+    "onboarding": {
+        "title": "Define Your Company",
+        "subtitle": "We need detailed information about your company so our AI advisors can give you realistic and actionable advice.",
+        "companyName": "Company Name",
+        "industry": "Industry",
+        "employeeCount": "Employee Count",
+        "annualRevenue": "Annual Revenue",
+        "monthlyBudget": "Monthly Investment Budget",
+        "website": "Website",
+        "targetMarket": "Target Market / Audience",
+        "challenges": "Current Challenges / Goals",
+        "description": "Company Description",
+        "complete": "Complete Setup & Start 🚀",
+        "completing": "Setting up..."
+    },
+    "chat": {
+        "placeholder": "Ask a question or set a topic...",
+        "send": "Send",
+        "thinking": "Board members are thinking...",
+        "debateEnded": "Debate Ended",
+        "votingOptions": "Voting Options",
+        "finalReport": "Preparing Final Decision Report..."
+    },
+    "agents": {
+        "strategist": "Strategist",
+        "visionary": "Visionary",
+        "skeptic": "Skeptic",
+        "cfo": "CFO",
+        "userAdvocate": "User Advocate",
+        "moderator": "Moderator"
+    },
+    "settings": {
+        "title": "Settings",
+        "companyInfo": "Company Information",
+        "save": "Save",
+        "saving": "Saving...",
+        "saved": "Saved!"
+    },
+    "team": {
+        "title": "Board of Directors",
+        "subtitle": "Your AI advisors are always at your service"
+    }
+}

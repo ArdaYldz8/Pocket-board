@@ -1,0 +1,66 @@
+{
+    "common": {
+        "welcome": "Pocket Board'a Hoş Geldiniz",
+        "welcomeSubtitle": "Konuyu belirleyin, yönetim kurulunun tartışmasını izleyin.",
+        "login": "Giriş Yap",
+        "register": "Kayıt Ol",
+        "logout": "Çıkış Yap",
+        "email": "E-posta",
+        "password": "Şifre",
+        "fullName": "Ad Soyad",
+        "submit": "Gönder",
+        "loading": "Yükleniyor...",
+        "noAccount": "Hesabın yok mu?",
+        "hasAccount": "Zaten hesabın var mı?"
+    },
+    "sidebar": {
+        "title": "Pocket Board",
+        "newChat": "Yeni Sohbet",
+        "settings": "Ayarlar",
+        "team": "Ekip",
+        "conversations": "Görüşmeler",
+        "noConversations": "Henüz görüşme yok"
+    },
+    "onboarding": {
+        "title": "Şirketini Detaylı Tanımla",
+        "subtitle": "AI Danışmanlarının sana gerçekçi ve uygulanabilir tavsiyeler verebilmesi için şirketin hakkında detaylı bilgiye ihtiyacımız var.",
+        "companyName": "Şirket Adı",
+        "industry": "Sektör",
+        "employeeCount": "Çalışan Sayısı",
+        "annualRevenue": "Yıllık Ciro",
+        "monthlyBudget": "Aylık Yatırım Bütçesi",
+        "website": "Web Sitesi",
+        "targetMarket": "Hedef Kitle / Pazar",
+        "challenges": "Mevcut Zorluklar / Hedefler",
+        "description": "Şirket Tanımı",
+        "complete": "Kurulumu Tamamla ve Başla 🚀",
+        "completing": "Kurulum Yapılıyor..."
+    },
+    "chat": {
+        "placeholder": "Soru sorun veya bir konu belirleyin...",
+        "send": "Gönder",
+        "thinking": "Konsey üyeleri düşünüyor...",
+        "debateEnded": "Tartışma Sona Erdi",
+        "votingOptions": "Oylama Seçenekleri",
+        "finalReport": "Nihai Karar Raporu Hazırlanıyor..."
+    },
+    "agents": {
+        "strategist": "Stratejist",
+        "visionary": "Vizyoner",
+        "skeptic": "Şüpheci",
+        "cfo": "CFO",
+        "userAdvocate": "Kullanıcı Dostu",
+        "moderator": "Moderatör"
+    },
+    "settings": {
+        "title": "Ayarlar",
+        "companyInfo": "Şirket Bilgileri",
+        "save": "Kaydet",
+        "saving": "Kaydediliyor...",
+        "saved": "Kaydedildi!"
+    },
+    "team": {
+        "title": "Yönetim Kurulu",
+        "subtitle": "AI danışmanlarınız her zaman hizmetinizde"
+    }
+}

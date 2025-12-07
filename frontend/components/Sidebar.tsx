@@ -1,12 +1,13 @@
-
 'use client';
 import { useState, useEffect } from 'react';
-import { Zap, Brain, Cpu, Sparkles, Bot, MessageSquare, History, Settings, LogOut, ChevronLeft, ChevronRight, Menu, Plus, Users } from 'lucide-react';
+import { Zap, Brain, Cpu, Sparkles, Bot, MessageSquare, History, Settings, LogOut, ChevronLeft, ChevronRight, Menu, Plus, Users, Globe } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
+import { useLanguage, LanguageSwitcher } from '@/lib/LanguageContext';
 
 export default function Sidebar({ user }: { user: any }) {
     const router = useRouter();
+    const { t, language, setLanguage } = useLanguage();
     const [collapsed, setCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
     const [conversations, setConversations] = useState<any[]>([]);
@@ -144,6 +145,25 @@ export default function Sidebar({ user }: { user: any }) {
 
                     {/* User Profile */}
                     <div className="p-4 border-t border-gray-100 bg-gray-50/50">
+                        {/* Language Switcher */}
+                        {!collapsed && (
+                            <button
+                                onClick={() => setLanguage(language === 'tr' ? 'en' : 'tr')}
+                                className="w-full flex items-center gap-2 px-3 py-2 mb-3 rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors text-sm font-medium"
+                            >
+                                <Globe className="w-4 h-4 text-slate-600" />
+                                <span className="text-slate-700">{language === 'tr' ? '🇹🇷 Türkçe' : '🇬🇧 English'}</span>
+                            </button>
+                        )}
+                        {collapsed && (
+                            <button
+                                onClick={() => setLanguage(language === 'tr' ? 'en' : 'tr')}
+                                className="w-full flex justify-center p-2 mb-3 rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors"
+                                title={language === 'tr' ? 'English' : 'Türkçe'}
+                            >
+                                <span className="text-lg">{language === 'tr' ? '🇹🇷' : '🇬🇧'}</span>
+                            </button>
+                        )}
                         <div className={`flex items-center gap-3 ${collapsed ? 'justify-center' : ''}`}>
                             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold shadow-md">
                                 {user?.email?.[0].toUpperCase() || 'U'}
@@ -151,7 +171,7 @@ export default function Sidebar({ user }: { user: any }) {
                             {!collapsed && (
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm font-semibold text-gray-900 truncate">
-                                        {user?.user_metadata?.full_name || 'Kullanıcı'}
+                                        {user?.user_metadata?.full_name || (language === 'tr' ? 'Kullanıcı' : 'User')}
                                     </p>
                                     <p className="text-xs text-gray-500 truncate">{user?.email}</p>
                                 </div>
@@ -160,7 +180,7 @@ export default function Sidebar({ user }: { user: any }) {
                                 <button
                                     onClick={handleLogout}
                                     className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                    title="Çıkış Yap"
+                                    title={t('common.logout')}
                                 >
                                     <LogOut className="w-5 h-5" />
                                 </button>
