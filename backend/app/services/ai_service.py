@@ -298,8 +298,8 @@ def get_debaters(company_info):
         ),
         AIModel(
             name="Sterling",
-            provider="groq",
-            model_name="qwen/qwen3-32b",
+            provider="openai",
+            model_name="gpt-5-nano",
             persona="""CFO (The Finance Guy): SADECE RAKAMLAR. Vizyon ve duygular seni ilgilendirmez.
             ZORUNLU KONULAR: ROI, nakit akışı, maliyet, geri ödeme süresi, bilanço etkisi.
             YASAK KONULAR: 'Vizyon', 'marka prestiji', 'müşteri mutluluğu', 'inovasyon'. Bunlar havadan konuşma.
