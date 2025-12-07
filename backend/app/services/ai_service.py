@@ -161,6 +161,8 @@ class AIModel:
             self.api_key = api_key or os.getenv("GEMINI_API_KEY", "").strip()
             if self.api_key:
                 genai.configure(api_key=self.api_key)
+        elif provider == "anthropic":
+            self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY", "").strip()
 
     def generate_response(self, messages):
         try:
@@ -201,6 +203,27 @@ class AIModel:
                      return "Error: İçerik güvenlik filtresine takıldı veya boş döndü. (Safety Block)"
                      
                 content = response.text
+            
+            elif self.provider == "anthropic":
+                import anthropic
+                client = anthropic.Anthropic(api_key=self.api_key)
+                
+                # Extract system message and convert to Claude format
+                system_msg = ""
+                user_messages = []
+                for msg in messages:
+                    if msg["role"] == "system":
+                        system_msg = msg["content"]
+                    else:
+                        user_messages.append({"role": msg["role"], "content": msg["content"]})
+                
+                response = client.messages.create(
+                    model=self.model_name,
+                    max_tokens=1024,
+                    system=system_msg,
+                    messages=user_messages
+                )
+                content = response.content[0].text
 
             # Clean <think> blocks (common in some models like DeepSeek/Qwen)
             content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL).strip()
@@ -284,8 +307,8 @@ def get_debaters(company_info):
         ),
         AIModel(
             name="Maya",
-            provider="groq",
-            model_name="llama-3.1-8b-instant",
+            provider="anthropic",
+            model_name="claude-3-haiku-20240307",
             persona="""Kullanıcı Dostu (The User Advocate): Müşteri her şeydir.
             ZORUNLU KONULAR: Müşteri deneyimi (UX), kullanıcı memnuniyeti, 'Müşteri ne hisseder?'
             YASAK KONULAR: Teknik detaylar, finansal tablolar, rakip analizi. Bunlar müşteriyi ilgilendirmez.
