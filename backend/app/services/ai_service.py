@@ -356,14 +356,16 @@ async def simulate_debate_streaming(query, history, company_info, image_base64=N
     # --- 0. VISION ANALYSIS ---
     image_description = ""
     if image_base64:
-        yield {"type": "typing", "agent": "Sistem"}
-        yield {"type": "message", "role": "Sistem", "content": "👁️ **Görsel Analiz Ediliyor...**", "is_agent": False}
+        yield {"type": "typing", "agent": "System" if language == "en" else "Sistem"}
+        analyzing_vision_msg = "👁️ **Analyzing Image...**" if language == "en" else "👁️ **Görsel Analiz Ediliyor...**"
+        yield {"type": "message", "role": "System" if language == "en" else "Sistem", "content": analyzing_vision_msg, "is_agent": False}
         image_description = analyze_image(image_base64, api_key)
-        yield {"type": "message", "role": "Sistem", "content": f"📸 **Görsel Analizi:**\n{image_description}", "is_agent": False}
+        vision_label = "📸 **Image Analysis:**" if language == "en" else "📸 **Görsel Analizi:**"
+        yield {"type": "message", "role": "System" if language == "en" else "Sistem", "content": f"{vision_label}\n{image_description}", "is_agent": False}
 
     
     # --- 0.5 WEB SEARCH & OPTION EXTRACTION ---
-    yield {"type": "typing", "agent": "Sistem"}
+    yield {"type": "typing", "agent": "System" if language == "en" else "Sistem"}
     
     # NOTE: Voting options are now determined AFTER the debate ends, 
     # based on actual arguments made during discussion.
@@ -374,84 +376,133 @@ async def simulate_debate_streaming(query, history, company_info, image_base64=N
     website_url = company_info.get('website_url')
     website_content = ""
     if website_url:
-        yield {"type": "typing", "agent": "Sistem"}
-        yield {"type": "message", "role": "Sistem", "content": f"🌐 **Web Sitesi Analiz Ediliyor:** {website_url}", "is_agent": False}
+        yield {"type": "typing", "agent": "System" if language == "en" else "Sistem"}
+        analyzing_msg = f"🌐 **Analyzing Website:** {website_url}" if language == "en" else f"🌐 **Web Sitesi Analiz Ediliyor:** {website_url}"
+        yield {"type": "message", "role": "System" if language == "en" else "Sistem", "content": analyzing_msg, "is_agent": False}
         raw_website_content = scrape_website(website_url)
         
         # Use Moderator (or first agent) to summarize the website content
         # We use a temporary prompt to the moderator model
-        analysis_prompt = f"""
-        GÖREV: Aşağıdaki ham web sitesi metnini analiz et ve Şirket hakkında profesyonel bir özet çıkar.
-        
-        HAM METİN:
-        {raw_website_content[:3500]}
-        
-        İSTENEN ÇIKTI FORMATI:
-        📊 **SİTE ANALİZ RAPORU:**
-        - **Şirket:** [Adı ve Sektörü]
-        - **Ne Yapıyorlar?:** [Ana faaliyet alanı]
-        - **Öne Çıkan Ürünler:** [Listele]
-        - **Vurgulanan Değerler:** [Sitedeki sloganlar/vizyon]
-        - **Hedef Kitle:** [Kimlere hitap ediyor?]
-        
-        (Gereksiz menü yazılarını, 'Sepetiniz boş' gibi UI metinlerini yoksay. Sadece anlamlı içeriğe odaklan.)
-        """
+        if language == "en":
+            analysis_prompt = f"""
+            TASK: Analyze the following raw website text and create a professional summary about the Company.
+            
+            RAW TEXT:
+            {raw_website_content[:3500]}
+            
+            REQUIRED OUTPUT FORMAT:
+            📊 **WEBSITE ANALYSIS REPORT:**
+            - **Company:** [Name and Industry]
+            - **What They Do:** [Main business activity]
+            - **Key Products:** [List them]
+            - **Highlighted Values:** [Slogans/vision from site]
+            - **Target Audience:** [Who they serve]
+            
+            (Ignore unnecessary menu text, 'Your cart is empty' type UI text. Focus only on meaningful content.)
+            """
+        else:
+            analysis_prompt = f"""
+            GÖREV: Aşağıdaki ham web sitesi metnini analiz et ve Şirket hakkında profesyonel bir özet çıkar.
+            
+            HAM METİN:
+            {raw_website_content[:3500]}
+            
+            İSTENEN ÇIKTI FORMATI:
+            📊 **SİTE ANALİZ RAPORU:**
+            - **Şirket:** [Adı ve Sektörü]
+            - **Ne Yapıyorlar?:** [Ana faaliyet alanı]
+            - **Öne Çıkan Ürünler:** [Listele]
+            - **Vurgulanan Değerler:** [Sitedeki sloganlar/vizyon]
+            - **Hedef Kitle:** [Kimlere hitap ediyor?]
+            
+            (Gereksiz menü yazılarını, 'Sepetiniz boş' gibi UI metinlerini yoksay. Sadece anlamlı içeriğe odaklan.)
+            """
         
         try:
             website_content = moderator.generate_response([{"role": "user", "content": analysis_prompt}])
         except:
-             website_content = f"Site içeriği alındı, ancak analiz edilemedi.\nHam Veri: {raw_website_content[:200]}..."
+            error_msg = f"Website content retrieved but could not be analyzed.\nRaw Data: {raw_website_content[:200]}..." if language == "en" else f"Site içeriği alındı, ancak analiz edilemedi.\nHam Veri: {raw_website_content[:200]}..."
+            website_content = error_msg
 
         web_content_msg = website_content
-        save_to_db("system", f"📊 **SİTE ANALİZ RAPORU:** {web_content_msg}")
-        yield {"type": "message", "role": "Sistem", "content": f"📊 **SİTE ANALİZ RAPORU:** {web_content_msg}", "is_agent": False}
+        report_label = "📊 **WEBSITE ANALYSIS REPORT:**" if language == "en" else "📊 **SİTE ANALİZ RAPORU:**"
+        save_to_db("system", f"{report_label} {web_content_msg}")
+        yield {"type": "message", "role": "System" if language == "en" else "Sistem", "content": f"{report_label} {web_content_msg}", "is_agent": False}
 
     # --- 1. PERFORM WEB SEARCH ---
-    yield {"type": "typing", "agent": "Sistem"}
+    yield {"type": "typing", "agent": "System" if language == "en" else "Sistem"}
     
     # Optimize Search Query
     search_optimizer = debaters[0] # Use the first agent (usually GPT-4o-mini) for optimization
-    opt_prompt = [
-        {"role": "system", "content": f"Sen bir arama motoru uzmanısın. BUGÜNÜN TARİHİ: {datetime.now().strftime('%Y-%m-%d')}. Kullanıcının tartışma konusunu analiz et ve bu konuda GÜNCEL somut veriler (maliyet, istatistik, haber, trendler) bulmak için EN İYİ Google arama sorgusunu yaz.\n\nKURALLAR:\n1. Sadece sorguyu yaz, başka hiçbir şey yazma.\n2. Kullanıcının sorusu hangi dildeyse, aramayı O DİLDE yap ve YILI BELİRT (Örn: '2025 trends')."},
-        {"role": "user", "content": f"Konu: {query}\nŞirket: {company_info.get('name')} ({company_info.get('industry')})"}
-    ]
+    if language == "en":
+        opt_prompt = [
+            {"role": "system", "content": f"You are a search engine expert. TODAY'S DATE: {datetime.now().strftime('%Y-%m-%d')}. Analyze the user's discussion topic and write the BEST Google search query to find CURRENT concrete data (costs, statistics, news, trends).\n\nRULES:\n1. Write only the query, nothing else.\n2. Search in the language of the user's question and INCLUDE THE YEAR (e.g., '2025 trends')."},
+            {"role": "user", "content": f"Topic: {query}\nCompany: {company_info.get('name')} ({company_info.get('industry')})"}
+        ]
+    else:
+        opt_prompt = [
+            {"role": "system", "content": f"Sen bir arama motoru uzmanısın. BUGÜNÜN TARİHİ: {datetime.now().strftime('%Y-%m-%d')}. Kullanıcının tartışma konusunu analiz et ve bu konuda GÜNCEL somut veriler (maliyet, istatistik, haber, trendler) bulmak için EN İYİ Google arama sorgusunu yaz.\n\nKURALLAR:\n1. Sadece sorguyu yaz, başka hiçbir şey yazma.\n2. Kullanıcının sorusu hangi dildeyse, aramayı O DİLDE yap ve YILI BELİRT (Örn: '2025 trends')."},
+            {"role": "user", "content": f"Konu: {query}\nŞirket: {company_info.get('name')} ({company_info.get('industry')})"}
+        ]
     optimized_query = search_optimizer.generate_response(opt_prompt).strip().replace('"', '')
     
     raw_search_results = perform_web_search(optimized_query)
     
     # Use Moderator to summarize the search results
-    research_prompt = f"""
-    GÖREV: Aşağıdaki internet arama sonuçlarını analiz et ve konuyla ilgili profesyonel bir pazar araştırma raporu yaz.
-    
-    KONU: {query}
-    HAM ARAMA SONUÇLARI:
-    {raw_search_results}
-    
-    İSTENEN ÇIKTI FORMATI:
-    🌍 **PAZAR ARAŞTIRMA RAPORU ({datetime.now().strftime('%Y')}):**
-    - **Trendler:** [Arama sonuçlarındaki ana eğilimler]
-    - **İstatistikler:** [Eğer varsa rakamlar, oranlar]
-    - **Haberler/Gelişmeler:** [Önemli başlıklar]
-    
-    (Lütfen "Incognito mode", "Google Help" veya konuyla alakasız sözlük tanımları gibi gereksiz bilgileri FİLTRELE. Sadece konuya odaklan. Eğer kayda değer bir bilgi yoksa "Kayda değer güncel veri bulunamadı" de.)
-    """
+    if language == "en":
+        research_prompt = f"""
+        TASK: Analyze the following internet search results and write a professional market research report about the topic.
+        
+        TOPIC: {query}
+        RAW SEARCH RESULTS:
+        {raw_search_results}
+        
+        REQUIRED OUTPUT FORMAT:
+        🌍 **MARKET RESEARCH REPORT ({datetime.now().strftime('%Y')}):**
+        - **Trends:** [Main trends from search results]
+        - **Statistics:** [If available, numbers and ratios]
+        - **News/Developments:** [Important headlines]
+        
+        (Please FILTER out irrelevant information like "Incognito mode", "Google Help" or unrelated dictionary definitions. Focus only on the topic. If no noteworthy information is found, say "No significant current data found.")
+        """
+    else:
+        research_prompt = f"""
+        GÖREV: Aşağıdaki internet arama sonuçlarını analiz et ve konuyla ilgili profesyonel bir pazar araştırma raporu yaz.
+        
+        KONU: {query}
+        HAM ARAMA SONUÇLARI:
+        {raw_search_results}
+        
+        İSTENEN ÇIKTI FORMATI:
+        🌍 **PAZAR ARAŞTIRMA RAPORU ({datetime.now().strftime('%Y')}):**
+        - **Trendler:** [Arama sonuçlarındaki ana eğilimler]
+        - **İstatistikler:** [Eğer varsa rakamlar, oranlar]
+        - **Haberler/Gelişmeler:** [Önemli başlıklar]
+        
+        (Lütfen "Incognito mode", "Google Help" veya konuyla alakasız sözlük tanımları gibi gereksiz bilgileri FİLTRELE. Sadece konuya odaklan. Eğer kayda değer bir bilgi yoksa "Kayda değer güncel veri bulunamadı" de.)
+        """
     
     try:
         search_results = moderator.generate_response([{"role": "user", "content": research_prompt}])
     except:
-        search_results = f"Arama yapıldı ancak özetlenemedi.\nHam Veri: {raw_search_results[:200]}..."
+        error_msg = f"Search completed but could not be summarized.\nRaw Data: {raw_search_results[:200]}..." if language == "en" else f"Arama yapıldı ancak özetlenemedi.\nHam Veri: {raw_search_results[:200]}..."
+        search_results = error_msg
 
     search_content_msg = search_results
     save_to_db("system", search_content_msg)
-    yield {"type": "message", "role": "Sistem", "content": search_content_msg, "is_agent": False}
+    yield {"type": "message", "role": "System" if language == "en" else "Sistem", "content": search_content_msg, "is_agent": False}
     
     # --- 2. LOAD MEMORY (VECTOR) ---
     past_decisions = search_memory_vector(query)
     memory_context = ""
     if past_decisions:
-        memory_context = "GEÇMİŞ KONSEY KARARLARI (Benzer Konular):\n"
+        memory_header = "PAST BOARD DECISIONS (Similar Topics):\n" if language == "en" else "GEÇMİŞ KONSEY KARARLARI (Benzer Konular):\n"
+        memory_context = memory_header
         for p in past_decisions:
-            memory_context += f"- Konu: {p['topic']} -> Karar: {p['decision']} ({p['reason']})\n"
+            if language == "en":
+                memory_context += f"- Topic: {p['topic']} -> Decision: {p['decision']} ({p['reason']})\n"
+            else:
+                memory_context += f"- Konu: {p['topic']} -> Karar: {p['decision']} ({p['reason']})\n"
     
     # Initial setup
     messages = history + [{"role": "user", "content": query}]
