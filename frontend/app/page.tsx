@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import ReactMarkdown from 'react-markdown';
+import { useLanguage } from '@/lib/LanguageContext';
 
 interface Message {
   role: string;
@@ -41,6 +42,7 @@ export default function Home() {
 function BoardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t, language } = useLanguage();
   const conversationIdParam = searchParams.get('id');
   const isNewChat = searchParams.get('new') === 'true';
 
@@ -111,7 +113,7 @@ function BoardContent() {
   }, [router]);
 
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'system', content: 'Pocket Board\'a Hoş Geldiniz. Konuyu belirleyin, yönetim kurulunun tartışmasını izleyin.' }
+    { role: 'system', content: language === 'tr' ? 'Pocket Board\'a Hoş Geldiniz. Konuyu belirleyin, yönetim kurulunun tartışmasını izleyin.' : 'Welcome to Pocket Board. Set the topic and watch your board of directors debate.' }
   ]);
   const [votes, setVotes] = useState<Vote[] | null>(null);
   const [input, setInput] = useState('');
@@ -144,7 +146,7 @@ function BoardContent() {
   useEffect(() => {
     // Skip history load if starting a new chat
     if (isNewChat) {
-      setMessages([{ role: 'system', content: 'Pocket Board\'a Hoş Geldiniz. Konuyu belirleyin, yönetim kurulunun tartışmasını izleyin.' }]);
+      setMessages([{ role: 'system', content: language === 'tr' ? 'Pocket Board\'a Hoş Geldiniz. Konuyu belirleyin, yönetim kurulunun tartışmasını izleyin.' : 'Welcome to Pocket Board. Set the topic and watch your board of directors debate.' }]);
       setConversationId(null);
       setVotes(null);
       return;
@@ -177,7 +179,7 @@ function BoardContent() {
           }
         } else if (data.messages && data.messages.length === 0 && conversationIdParam) {
           // If new conversation (no messages yet), reset messages
-          setMessages([{ role: 'system', content: 'Yeni Tartışma Başlatıldı.' }]);
+          setMessages([{ role: 'system', content: language === 'tr' ? 'Yeni Tartışma Başlatıldı.' : 'New Debate Started.' }]);
           setConversationId(conversationIdParam);
         }
       } catch (err) {
@@ -695,7 +697,7 @@ function BoardContent() {
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Konseyinize danışın..."
+                placeholder={language === 'tr' ? 'Konseyinize danışın...' : 'Ask your board...'}
                 className="flex-1 pl-4 pr-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-slate-900 placeholder:text-slate-400 font-medium transition-all"
               />
               <button
