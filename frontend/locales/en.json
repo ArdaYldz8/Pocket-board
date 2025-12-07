@@ -15,11 +15,13 @@
     },
     "sidebar": {
         "title": "Pocket Board",
+        "arena": "Arena (Chat)",
         "newChat": "New Chat",
         "settings": "Settings",
-        "team": "Team",
+        "team": "Board Members",
         "conversations": "Conversations",
-        "noConversations": "No conversations yet"
+        "noConversations": "No conversations yet.",
+        "newDebate": "New Debate"
     },
     "onboarding": {
         "title": "Define Your Company",

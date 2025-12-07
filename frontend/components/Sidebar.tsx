@@ -33,9 +33,9 @@ export default function Sidebar({ user }: { user: any }) {
     }, []);
 
     const menuItems = [
-        { icon: <MessageSquare className="w-5 h-5" />, label: 'Arena (Chat)', path: '/' },
-        { icon: <Users className="w-5 h-5" />, label: 'Konsey Üyeleri', path: '/team' },
-        { icon: <Settings className="w-5 h-5" />, label: 'Ayarlar', path: '/settings' },
+        { icon: <MessageSquare className="w-5 h-5" />, label: t('sidebar.arena'), path: '/' },
+        { icon: <Users className="w-5 h-5" />, label: t('sidebar.team'), path: '/team' },
+        { icon: <Settings className="w-5 h-5" />, label: t('sidebar.settings'), path: '/settings' },
     ];
 
     const handleLogout = async () => {
@@ -116,16 +116,16 @@ export default function Sidebar({ user }: { user: any }) {
                                 className="w-full flex items-center gap-2 px-3 py-2.5 mb-3 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium hover:from-blue-600 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"
                             >
                                 <Plus className="w-5 h-5" />
-                                <span>Yeni Sohbet</span>
+                                <span>{t('sidebar.newChat')}</span>
                             </button>
 
                             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-                                Sohbetlerin
+                                {t('sidebar.conversations')}
                             </h3>
                             <div className="space-y-1">
                                 {conversations.length === 0 ? (
                                     <div className="text-xs text-gray-400 px-3 py-2 italic">
-                                        Henüz sohbet yok.
+                                        {t('sidebar.noConversations')}
                                     </div>
                                 ) : (
                                     conversations.map((conv) => (
@@ -134,7 +134,7 @@ export default function Sidebar({ user }: { user: any }) {
                                             onClick={() => router.push(`/?id=${conv.id}`)}
                                             className="w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-lg truncate transition-colors"
                                         >
-                                            {conv.title || 'Yeni Tartışma'}
+                                            {conv.title || t('sidebar.newDebate')}
                                         </button>
                                     ))
                                 )}

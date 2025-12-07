@@ -15,11 +15,13 @@
     },
     "sidebar": {
         "title": "Pocket Board",
+        "arena": "Arena (Chat)",
         "newChat": "Yeni Sohbet",
         "settings": "Ayarlar",
-        "team": "Ekip",
-        "conversations": "Görüşmeler",
-        "noConversations": "Henüz görüşme yok"
+        "team": "Konsey Üyeleri",
+        "conversations": "Sohbetlerin",
+        "noConversations": "Henüz sohbet yok.",
+        "newDebate": "Yeni Tartışma"
     },
     "onboarding": {
         "title": "Şirketini Detaylı Tanımla",
