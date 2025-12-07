@@ -384,50 +384,42 @@ async def simulate_debate_streaming(query, history, company_info, image_base64=N
         # Use Moderator (or first agent) to summarize the website content
         # We use a temporary prompt to the moderator model
         if language == "en":
-            analysis_prompt = f"""
-            TASK: Analyze the following raw website text and create a professional summary about the Company.
-            
-            RAW TEXT:
-            {raw_website_content[:3500]}
-            
-            REQUIRED OUTPUT FORMAT:
-            📊 **WEBSITE ANALYSIS REPORT:**
-            - **Company:** [Name and Industry]
-            - **What They Do:** [Main business activity]
-            - **Key Products:** [List them]
-            - **Highlighted Values:** [Slogans/vision from site]
-            - **Target Audience:** [Who they serve]
-            
-            (Ignore unnecessary menu text, 'Your cart is empty' type UI text. Focus only on meaningful content.)
-            """
+            analysis_prompt = f"""Analyze this website and give a SHORT summary (max 5 bullet points).
+
+RAW TEXT:
+{raw_website_content[:2500]}
+
+FORMAT (use simple bullets, NO markdown symbols):
+• Company: [name - industry]
+• Business: [what they do in 1 sentence]
+• Products: [top 3-5 products]  
+• Values: [key message/slogan]
+• Target: [who they serve]
+
+Keep it SHORT and CLEAN. No long paragraphs."""
         else:
-            analysis_prompt = f"""
-            GÖREV: Aşağıdaki ham web sitesi metnini analiz et ve Şirket hakkında profesyonel bir özet çıkar.
-            
-            HAM METİN:
-            {raw_website_content[:3500]}
-            
-            İSTENEN ÇIKTI FORMATI:
-            📊 **SİTE ANALİZ RAPORU:**
-            - **Şirket:** [Adı ve Sektörü]
-            - **Ne Yapıyorlar?:** [Ana faaliyet alanı]
-            - **Öne Çıkan Ürünler:** [Listele]
-            - **Vurgulanan Değerler:** [Sitedeki sloganlar/vizyon]
-            - **Hedef Kitle:** [Kimlere hitap ediyor?]
-            
-            (Gereksiz menü yazılarını, 'Sepetiniz boş' gibi UI metinlerini yoksay. Sadece anlamlı içeriğe odaklan.)
-            """
+            analysis_prompt = f"""Bu web sitesini analiz et ve KISA bir özet ver (max 5 madde).
+
+HAM METİN:
+{raw_website_content[:2500]}
+
+FORMAT (basit maddeler kullan, markdown KULLANMA):
+• Şirket: [isim - sektör]
+• İş: [ne yaptıkları 1 cümle]
+• Ürünler: [en önemli 3-5 ürün]
+• Değerler: [ana mesaj/slogan]
+• Hedef: [kime hizmet ediyorlar]
+
+KISA ve TEMİZ tut. Uzun paragraflar yazma."""
         
         try:
             website_content = moderator.generate_response([{"role": "user", "content": analysis_prompt}])
         except:
-            error_msg = f"Website content retrieved but could not be analyzed.\nRaw Data: {raw_website_content[:200]}..." if language == "en" else f"Site içeriği alındı, ancak analiz edilemedi.\nHam Veri: {raw_website_content[:200]}..."
+            error_msg = "Could not analyze website." if language == "en" else "Site analiz edilemedi."
             website_content = error_msg
 
-        web_content_msg = website_content
-        report_label = "📊 **WEBSITE ANALYSIS REPORT:**" if language == "en" else "📊 **SİTE ANALİZ RAPORU:**"
-        save_to_db("system", f"{report_label} {web_content_msg}")
-        yield {"type": "message", "role": "System" if language == "en" else "Sistem", "content": f"{report_label} {web_content_msg}", "is_agent": False}
+        save_to_db("system", website_content)
+        yield {"type": "message", "role": "System" if language == "en" else "Sistem", "content": website_content, "is_agent": False}
 
     # --- 1. PERFORM WEB SEARCH ---
     yield {"type": "typing", "agent": "System" if language == "en" else "Sistem"}
@@ -450,47 +442,40 @@ async def simulate_debate_streaming(query, history, company_info, image_base64=N
     
     # Use Moderator to summarize the search results
     if language == "en":
-        research_prompt = f"""
-        TASK: Analyze the following internet search results and write a professional market research report about the topic.
-        
-        TOPIC: {query}
-        RAW SEARCH RESULTS:
-        {raw_search_results}
-        
-        REQUIRED OUTPUT FORMAT:
-        🌍 **MARKET RESEARCH REPORT ({datetime.now().strftime('%Y')}):**
-        - **Trends:** [Main trends from search results]
-        - **Statistics:** [If available, numbers and ratios]
-        - **News/Developments:** [Important headlines]
-        
-        (Please FILTER out irrelevant information like "Incognito mode", "Google Help" or unrelated dictionary definitions. Focus only on the topic. If no noteworthy information is found, say "No significant current data found.")
-        """
+        research_prompt = f"""Give a SHORT market research summary about: {query}
+
+SEARCH RESULTS:
+{raw_search_results[:2000]}
+
+FORMAT (max 4 bullet points, NO markdown, keep each point SHORT):
+• Trends: [1-2 key trends]
+• Stats: [any numbers found, or "No data"]
+• News: [1-2 recent headlines if any]
+• Recommendation: [1 sentence advice]
+
+Filter out irrelevant info. If no good data found, just say "No significant data found." Keep it under 100 words total."""
     else:
-        research_prompt = f"""
-        GÖREV: Aşağıdaki internet arama sonuçlarını analiz et ve konuyla ilgili profesyonel bir pazar araştırma raporu yaz.
-        
-        KONU: {query}
-        HAM ARAMA SONUÇLARI:
-        {raw_search_results}
-        
-        İSTENEN ÇIKTI FORMATI:
-        🌍 **PAZAR ARAŞTIRMA RAPORU ({datetime.now().strftime('%Y')}):**
-        - **Trendler:** [Arama sonuçlarındaki ana eğilimler]
-        - **İstatistikler:** [Eğer varsa rakamlar, oranlar]
-        - **Haberler/Gelişmeler:** [Önemli başlıklar]
-        
-        (Lütfen "Incognito mode", "Google Help" veya konuyla alakasız sözlük tanımları gibi gereksiz bilgileri FİLTRELE. Sadece konuya odaklan. Eğer kayda değer bir bilgi yoksa "Kayda değer güncel veri bulunamadı" de.)
-        """
+        research_prompt = f"""Şu konu hakkında KISA bir pazar araştırması özeti ver: {query}
+
+ARAMA SONUÇLARI:
+{raw_search_results[:2000]}
+
+FORMAT (max 4 madde, markdown KULLANMA, her madde KISA olsun):
+• Trendler: [1-2 ana trend]
+• İstatistik: [bulunan rakamlar, yoksa "Veri yok"]
+• Haberler: [varsa 1-2 güncel başlık]
+• Tavsiye: [1 cümle öneri]
+
+Alakasız bilgileri filtrele. İyi veri yoksa sadece "Kayda değer veri bulunamadı" de. Toplam 100 kelimeyi geçme."""
     
     try:
         search_results = moderator.generate_response([{"role": "user", "content": research_prompt}])
     except:
-        error_msg = f"Search completed but could not be summarized.\nRaw Data: {raw_search_results[:200]}..." if language == "en" else f"Arama yapıldı ancak özetlenemedi.\nHam Veri: {raw_search_results[:200]}..."
+        error_msg = "Could not complete research." if language == "en" else "Araştırma tamamlanamadı."
         search_results = error_msg
 
-    search_content_msg = search_results
-    save_to_db("system", search_content_msg)
-    yield {"type": "message", "role": "System" if language == "en" else "Sistem", "content": search_content_msg, "is_agent": False}
+    save_to_db("system", search_results)
+    yield {"type": "message", "role": "System" if language == "en" else "Sistem", "content": search_results, "is_agent": False}
     
     # --- 2. LOAD MEMORY (VECTOR) ---
     past_decisions = search_memory_vector(query)
