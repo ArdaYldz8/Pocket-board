@@ -5,9 +5,11 @@ import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import { Settings as SettingsIcon, Save, RefreshCw, Building2, Globe, FileText, Target, Users, DollarSign, TrendingUp, AlertTriangle } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
+import { useLanguage } from '@/lib/LanguageContext';
 
 export default function Settings() {
     const router = useRouter();
+    const { t, language } = useLanguage();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [user, setUser] = useState<any>(null);
@@ -25,30 +27,50 @@ export default function Settings() {
     });
     const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
 
-    const employeeOptions = [
+    const employeeOptions = language === 'tr' ? [
         { value: '1-5', label: '1-5 Kişi (Mikro)' },
         { value: '6-20', label: '6-20 Kişi (Küçük)' },
         { value: '21-50', label: '21-50 Kişi (Orta-Küçük)' },
         { value: '51-200', label: '51-200 Kişi (Orta)' },
         { value: '201-1000', label: '201-1000 Kişi (Büyük)' },
         { value: '1000+', label: '1000+ Kişi (Kurumsal)' }
+    ] : [
+        { value: '1-5', label: '1-5 People (Micro)' },
+        { value: '6-20', label: '6-20 People (Small)' },
+        { value: '21-50', label: '21-50 People (Small-Medium)' },
+        { value: '51-200', label: '51-200 People (Medium)' },
+        { value: '201-1000', label: '201-1000 People (Large)' },
+        { value: '1000+', label: '1000+ People (Enterprise)' }
     ];
 
-    const revenueOptions = [
+    const revenueOptions = language === 'tr' ? [
         { value: '0-100k', label: '0 - 100.000 ₺ / yıl' },
         { value: '100k-500k', label: '100.000 - 500.000 ₺ / yıl' },
         { value: '500k-2m', label: '500.000 - 2 Milyon ₺ / yıl' },
         { value: '2m-10m', label: '2 - 10 Milyon ₺ / yıl' },
         { value: '10m-50m', label: '10 - 50 Milyon ₺ / yıl' },
         { value: '50m+', label: '50+ Milyon ₺ / yıl' }
+    ] : [
+        { value: '0-100k', label: '$0 - $10K / year' },
+        { value: '100k-500k', label: '$10K - $50K / year' },
+        { value: '500k-2m', label: '$50K - $200K / year' },
+        { value: '2m-10m', label: '$200K - $1M / year' },
+        { value: '10m-50m', label: '$1M - $5M / year' },
+        { value: '50m+', label: '$5M+ / year' }
     ];
 
-    const budgetOptions = [
+    const budgetOptions = language === 'tr' ? [
         { value: '0-5k', label: '0 - 5.000 ₺ / ay' },
         { value: '5k-20k', label: '5.000 - 20.000 ₺ / ay' },
         { value: '20k-100k', label: '20.000 - 100.000 ₺ / ay' },
         { value: '100k-500k', label: '100.000 - 500.000 ₺ / ay' },
         { value: '500k+', label: '500.000+ ₺ / ay' }
+    ] : [
+        { value: '0-5k', label: '$0 - $500 / month' },
+        { value: '5k-20k', label: '$500 - $2K / month' },
+        { value: '20k-100k', label: '$2K - $10K / month' },
+        { value: '100k-500k', label: '$10K - $50K / month' },
+        { value: '500k+', label: '$50K+ / month' }
     ];
 
     useEffect(() => {
@@ -116,10 +138,16 @@ export default function Settings() {
                 .eq('id', formData.id);
 
             if (error) throw error;
-            setMessage({ text: 'Bilgiler başarıyla güncellendi!', type: 'success' });
+            setMessage({
+                text: language === 'tr' ? 'Bilgiler başarıyla güncellendi!' : 'Information updated successfully!',
+                type: 'success'
+            });
         } catch (error: any) {
             console.error('Update error:', error);
-            setMessage({ text: 'Güncelleme hatası: ' + error.message, type: 'error' });
+            setMessage({
+                text: (language === 'tr' ? 'Güncelleme hatası: ' : 'Update error: ') + error.message,
+                type: 'error'
+            });
         } finally {
             setSaving(false);
         }
@@ -144,9 +172,13 @@ export default function Settings() {
                 <header className="mb-8">
                     <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
                         <SettingsIcon className="w-8 h-8 text-slate-700" />
-                        Şirket Ayarları
+                        {language === 'tr' ? 'Şirket Ayarları' : 'Company Settings'}
                     </h1>
-                    <p className="text-slate-500 mt-2">Şirket profilinizi ve AI bağlamını buradan yönetebilirsiniz.</p>
+                    <p className="text-slate-500 mt-2">
+                        {language === 'tr'
+                            ? 'Şirket profilinizi ve AI bağlamını buradan yönetebilirsiniz.'
+                            : 'Manage your company profile and AI context here.'}
+                    </p>
                 </header>
 
                 <div className="max-w-3xl bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
@@ -162,7 +194,8 @@ export default function Settings() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
-                                    <Building2 className="w-4 h-4 text-blue-600" /> Şirket Adı
+                                    <Building2 className="w-4 h-4 text-blue-600" />
+                                    {language === 'tr' ? 'Şirket Adı' : 'Company Name'}
                                 </label>
                                 <input
                                     type="text"
@@ -174,7 +207,8 @@ export default function Settings() {
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
-                                    <Target className="w-4 h-4 text-blue-600" /> Sektör
+                                    <Target className="w-4 h-4 text-blue-600" />
+                                    {language === 'tr' ? 'Sektör' : 'Industry'}
                                 </label>
                                 <input
                                     type="text"
@@ -190,14 +224,15 @@ export default function Settings() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
-                                    <Users className="w-4 h-4 text-blue-600" /> Çalışan Sayısı
+                                    <Users className="w-4 h-4 text-blue-600" />
+                                    {language === 'tr' ? 'Çalışan Sayısı' : 'Employee Count'}
                                 </label>
                                 <select
                                     value={formData.employee_count}
                                     onChange={(e) => setFormData({ ...formData, employee_count: e.target.value })}
                                     className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-900"
                                 >
-                                    <option value="">Seçiniz...</option>
+                                    <option value="">{language === 'tr' ? 'Seçiniz...' : 'Select...'}</option>
                                     {employeeOptions.map(opt => (
                                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                                     ))}
@@ -205,14 +240,15 @@ export default function Settings() {
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
-                                    <TrendingUp className="w-4 h-4 text-blue-600" /> Yıllık Ciro
+                                    <TrendingUp className="w-4 h-4 text-blue-600" />
+                                    {language === 'tr' ? 'Yıllık Ciro' : 'Annual Revenue'}
                                 </label>
                                 <select
                                     value={formData.annual_revenue}
                                     onChange={(e) => setFormData({ ...formData, annual_revenue: e.target.value })}
                                     className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-900"
                                 >
-                                    <option value="">Seçiniz...</option>
+                                    <option value="">{language === 'tr' ? 'Seçiniz...' : 'Select...'}</option>
                                     {revenueOptions.map(opt => (
                                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                                     ))}
@@ -224,14 +260,15 @@ export default function Settings() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
-                                    <DollarSign className="w-4 h-4 text-blue-600" /> Aylık Yatırım Bütçesi
+                                    <DollarSign className="w-4 h-4 text-blue-600" />
+                                    {language === 'tr' ? 'Aylık Yatırım Bütçesi' : 'Monthly Investment Budget'}
                                 </label>
                                 <select
                                     value={formData.monthly_budget}
                                     onChange={(e) => setFormData({ ...formData, monthly_budget: e.target.value })}
                                     className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-900"
                                 >
-                                    <option value="">Seçiniz...</option>
+                                    <option value="">{language === 'tr' ? 'Seçiniz...' : 'Select...'}</option>
                                     {budgetOptions.map(opt => (
                                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                                     ))}
@@ -239,7 +276,8 @@ export default function Settings() {
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
-                                    <Globe className="w-4 h-4 text-blue-600" /> Web Sitesi
+                                    <Globe className="w-4 h-4 text-blue-600" />
+                                    {language === 'tr' ? 'Web Sitesi' : 'Website'}
                                 </label>
                                 <input
                                     type="url"
@@ -253,42 +291,49 @@ export default function Settings() {
                         {/* Row 4: Target Market */}
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
-                                <Target className="w-4 h-4 text-blue-600" /> Hedef Kitle / Pazar
+                                <Target className="w-4 h-4 text-blue-600" />
+                                {language === 'tr' ? 'Hedef Kitle / Pazar' : 'Target Market / Audience'}
                             </label>
                             <input
                                 type="text"
                                 value={formData.target_market}
                                 onChange={(e) => setFormData({ ...formData, target_market: e.target.value })}
                                 className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-900"
-                                placeholder="Örn: Türkiye'deki 25-45 yaş arası profesyoneller..."
+                                placeholder={language === 'tr'
+                                    ? "Örn: Türkiye'deki 25-45 yaş arası profesyoneller..."
+                                    : "E.g.: Professionals aged 25-45 in the US..."}
                             />
                         </div>
 
                         {/* Row 5: Challenges */}
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
-                                <AlertTriangle className="w-4 h-4 text-orange-500" /> Mevcut Zorluklar / Hedefler
+                                <AlertTriangle className="w-4 h-4 text-orange-500" />
+                                {language === 'tr' ? 'Mevcut Zorluklar / Hedefler' : 'Current Challenges / Goals'}
                             </label>
                             <textarea
                                 rows={3}
                                 value={formData.challenges}
                                 onChange={(e) => setFormData({ ...formData, challenges: e.target.value })}
                                 className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-900"
-                                placeholder="Örn: Nakit akışı sıkıntımız var. Büyümek istiyoruz ama kaynak sınırlı..."
+                                placeholder={language === 'tr'
+                                    ? "Örn: Nakit akışı sıkıntımız var. Büyümek istiyoruz ama kaynak sınırlı..."
+                                    : "E.g.: We have cash flow issues. We want to grow but resources are limited..."}
                             />
                         </div>
 
                         {/* Row 6: Description */}
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
-                                <FileText className="w-4 h-4 text-blue-600" /> Şirket Tanımı
+                                <FileText className="w-4 h-4 text-blue-600" />
+                                {language === 'tr' ? 'Şirket Tanımı' : 'Company Description'}
                             </label>
                             <textarea
                                 rows={2}
                                 value={formData.description}
                                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                 className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-900"
-                                placeholder="Kısaca ne yapıyorsunuz?"
+                                placeholder={language === 'tr' ? "Kısaca ne yapıyorsunuz?" : "What do you do in brief?"}
                             />
                         </div>
 
@@ -299,7 +344,9 @@ export default function Settings() {
                                 className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-black transition-all shadow-lg hover:shadow-xl disabled:opacity-70"
                             >
                                 {saving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                                {saving ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}
+                                {saving
+                                    ? (language === 'tr' ? 'Kaydediliyor...' : 'Saving...')
+                                    : (language === 'tr' ? 'Değişiklikleri Kaydet' : 'Save Changes')}
                             </button>
                         </div>
                     </form>
@@ -308,4 +355,3 @@ export default function Settings() {
         </div>
     );
 }
-

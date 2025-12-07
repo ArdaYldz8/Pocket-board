@@ -6,39 +6,46 @@ import { Users, Target, Lightbulb, AlertTriangle, PieChart, Heart, Gavel } from 
 import { useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
+import { useLanguage } from '@/lib/LanguageContext';
 
-const teamMembers = [
+const getTeamMembers = (language: string) => [
     {
         id: 'atlas',
         name: 'Atlas',
-        role: 'Stratejist',
+        role: language === 'tr' ? 'Stratejist' : 'Strategist',
         engRole: 'The Strategist',
         image: '/atlas.png',
         icon: <Target className="w-5 h-5 text-blue-500" />,
-        description: "Büyük resmi görür. Rakiplerin hamlelerini ve pazarın gidişatını analiz eder. Duygusal kararlar vermez, tamamen stratejik düşünür.",
-        traits: ['Rekabetçi', 'Analitik', 'Vizyoner'],
+        description: language === 'tr'
+            ? "Büyük resmi görür. Rakiplerin hamlelerini ve pazarın gidişatını analiz eder. Duygusal kararlar vermez, tamamen stratejik düşünür."
+            : "Sees the big picture. Analyzes competitor moves and market trends. Makes no emotional decisions, thinks purely strategically.",
+        traits: language === 'tr' ? ['Rekabetçi', 'Analitik', 'Vizyoner'] : ['Competitive', 'Analytical', 'Visionary'],
         color: 'from-blue-500 to-cyan-500'
     },
     {
         id: 'nova',
         name: 'Nova',
-        role: 'Vizyoner',
+        role: language === 'tr' ? 'Vizyoner' : 'Visionary',
         engRole: 'The Visionary',
         image: '/nova.png',
         icon: <Lightbulb className="w-5 h-5 text-yellow-500" />,
-        description: "Geleceğe odaklanır. 'Neden olmasın?' sorusunu sorar. İnovasyon, marka değeri ve büyük fikirler onun alanıdır. Bütçeyi pek sevmez.",
-        traits: ['Yaratıcı', 'Cesur', 'İnovatif'],
+        description: language === 'tr'
+            ? "Geleceğe odaklanır. 'Neden olmasın?' sorusunu sorar. İnovasyon, marka değeri ve büyük fikirler onun alanıdır. Bütçeyi pek sevmez."
+            : "Focuses on the future. Asks 'Why not?' Innovation, brand value, and big ideas are her domain. Doesn't care much about budgets.",
+        traits: language === 'tr' ? ['Yaratıcı', 'Cesur', 'İnovatif'] : ['Creative', 'Bold', 'Innovative'],
         color: 'from-yellow-400 to-orange-500'
     },
     {
         id: 'marcus',
         name: 'Marcus',
-        role: 'Şüpheci',
+        role: language === 'tr' ? 'Şüpheci' : 'Skeptic',
         engRole: 'The Skeptic',
         image: '/marcus.png',
         icon: <AlertTriangle className="w-5 h-5 text-red-500" />,
-        description: "Her iddianın kanıtını ister. Olası riskleri, yasal engelleri ve planın zayıf noktalarını bulup çıkarır. İyimserliği sevmez.",
-        traits: ['Sorgulayıcı', 'Tedbirli', 'Gerçekçi'],
+        description: language === 'tr'
+            ? "Her iddianın kanıtını ister. Olası riskleri, yasal engelleri ve planın zayıf noktalarını bulup çıkarır. İyimserliği sevmez."
+            : "Demands proof for every claim. Finds potential risks, legal obstacles, and weak points in any plan. Dislikes optimism.",
+        traits: language === 'tr' ? ['Sorgulayıcı', 'Tedbirli', 'Gerçekçi'] : ['Questioning', 'Cautious', 'Realistic'],
         color: 'from-red-500 to-rose-600'
     },
     {
@@ -48,38 +55,46 @@ const teamMembers = [
         engRole: 'The Finance Guy',
         image: '/sterling.png',
         icon: <PieChart className="w-5 h-5 text-green-500" />,
-        description: "Duyguları yoktur, sadece matematiği vardır. ROI, nakit akışı ve kar marjı dışındaki konularla ilgilenmez. Parayı korur.",
-        traits: ['Hesapçı', 'Disiplinli', 'Otoriter'],
+        description: language === 'tr'
+            ? "Duyguları yoktur, sadece matematiği vardır. ROI, nakit akışı ve kar marjı dışındaki konularla ilgilenmez. Parayı korur."
+            : "Has no emotions, only math. Cares only about ROI, cash flow, and profit margins. Protects the money.",
+        traits: language === 'tr' ? ['Hesapçı', 'Disiplinli', 'Otoriter'] : ['Calculating', 'Disciplined', 'Authoritative'],
         color: 'from-emerald-500 to-green-600'
     },
     {
         id: 'maya',
         name: 'Maya',
-        role: 'Kullanıcı Dostu',
+        role: language === 'tr' ? 'Kullanıcı Dostu' : 'User Advocate',
         engRole: 'The User Advocate',
         image: '/maya.png',
         icon: <Heart className="w-5 h-5 text-pink-500" />,
-        description: "Şirketin kalbidir. Müşterinin ne hissedeceğini, deneyimin nasıl olacağını düşünür. Teknik detaylardan çok insana odaklanır.",
-        traits: ['Empatik', 'Duyarlı', 'İnsan Odaklı'],
+        description: language === 'tr'
+            ? "Şirketin kalbidir. Müşterinin ne hissedeceğini, deneyimin nasıl olacağını düşünür. Teknik detaylardan çok insana odaklanır."
+            : "The heart of the company. Thinks about how customers will feel and what their experience will be. Focuses on people over technical details.",
+        traits: language === 'tr' ? ['Empatik', 'Duyarlı', 'İnsan Odaklı'] : ['Empathetic', 'Sensitive', 'Human-Centered'],
         color: 'from-pink-500 to-purple-500'
     },
     {
         id: 'orion',
         name: 'Orion',
-        role: 'Moderatör',
+        role: language === 'tr' ? 'Moderatör' : 'Moderator',
         engRole: 'The Chairman',
         image: '/orion.png',
         icon: <Gavel className="w-5 h-5 text-slate-500" />,
-        description: "Toplantıyı yönetir. Tartışma kilitlendiğinde müdahale eder, konuyu değiştirir ve nihai karara varılmasını sağlar.",
-        traits: ['Lider', 'Adil', 'Kararlı'],
+        description: language === 'tr'
+            ? "Toplantıyı yönetir. Tartışma kilitlendiğinde müdahale eder, konuyu değiştirir ve nihai karara varılmasını sağlar."
+            : "Runs the meeting. Intervenes when discussions stall, changes topics, and ensures a final decision is reached.",
+        traits: language === 'tr' ? ['Lider', 'Adil', 'Kararlı'] : ['Leader', 'Fair', 'Decisive'],
         color: 'from-slate-700 to-slate-900'
     }
 ];
 
 export default function TeamPage() {
     const router = useRouter();
+    const { language } = useLanguage();
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
+    const teamMembers = getTeamMembers(language);
 
     useEffect(() => {
         const checkUser = async () => {
@@ -108,8 +123,14 @@ export default function TeamPage() {
                             <Users className="w-5 h-5 text-blue-600" />
                         </div>
                         <div>
-                            <h1 className="text-xl font-bold text-gray-900">Yönetim Kurulu</h1>
-                            <p className="text-xs text-gray-500">Kararlarınızı şekillendiren Pocket Board ekibi</p>
+                            <h1 className="text-xl font-bold text-gray-900">
+                                {language === 'tr' ? 'Yönetim Kurulu' : 'Board of Directors'}
+                            </h1>
+                            <p className="text-xs text-gray-500">
+                                {language === 'tr'
+                                    ? 'Kararlarınızı şekillendiren Pocket Board ekibi'
+                                    : 'The Pocket Board team shaping your decisions'}
+                            </p>
                         </div>
                     </div>
                 </header>
