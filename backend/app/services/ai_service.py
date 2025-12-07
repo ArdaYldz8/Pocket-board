@@ -492,40 +492,58 @@ async def simulate_debate_streaming(query, history, company_info, image_base64=N
         
         current_date_str = datetime.now().strftime("%Y-%m-%d")
 
+        # Language instruction - MUST be at TOP of prompt for maximum effect
+        lang_instruction = ""
+        if language == "en":
+            lang_instruction = """
+        🚨 CRITICAL LANGUAGE RULE: YOU MUST RESPOND IN ENGLISH ONLY! 
+        The user asked their question in English. Your entire response MUST be in English.
+        Do NOT use Turkish. Do NOT mix languages. ENGLISH ONLY!
+        """
+        else:
+            lang_instruction = """
+        🚨 KRİTİK DİL KURALI: TÜRKÇE CEVAP VER!
+        Kullanıcı sorusunu Türkçe sordu. Tüm cevabın Türkçe olmalı.
+        """
+
         # System Prompt Construction
         system_prompt = f"""
+        {lang_instruction}
+        
         {context}
         
-        BUGÜNÜN TARİHİ: {current_date_str}
+        TODAY'S DATE: {current_date_str}
         
-        GÖRSEL BAĞLAMI: {image_description}
-        WEB SİTESİ İÇERİĞİ: {website_content}
+        IMAGE CONTEXT: {image_description}
+        WEBSITE CONTENT: {website_content}
         {search_results}
         {memory_context}
         
-        ŞU ANA KADAR KONUŞULANLAR (TEKRAR ETME!):
+        PREVIOUS ARGUMENTS (DO NOT REPEAT!):
         {prev_args_text}
         
-        SEN: {debater.name}
-        GİZLİ ROLÜN: {debater.persona}
-        KONU: {query}
+        YOU ARE: {debater.name}
+        YOUR ROLE: {debater.persona}
+        TOPIC: {query}
         
-        GENEL KURALLAR:
-        1. Son konuşan ({last_speaker_name})'ın dediğine ({last_message}) cevap ver.
-        2. Somut veri kullan [Kaynak: X].
-        3. Asla rakam uydurma.
-        4. Tekrar etme.
-        5. Rolüne uygun konuş.
-        6. Kısa ve öz ol (Max 2 cümle).
-        7. Yıl: {current_date_str.split('-')[0]}.
+        RULES:
+        1. Respond to the last speaker ({last_speaker_name}): {last_message}
+        2. Use concrete data [Source: X].
+        3. Never make up numbers.
+        4. Don't repeat.
+        5. Stay in character.
+        6. Be concise (Max 2 sentences).
+        7. Year: {current_date_str.split('-')[0]}.
         
-        ÇIKTI FORMATI:
-        [GÜVEN:X%] Argümanın... [Kaynak: X]
+        OUTPUT FORMAT:
+        [CONFIDENCE:X%] Your argument... [Source: X]
         """
+        
+        user_msg_content = f"{last_speaker_name} said: {last_message}" if language == "en" else f"{last_speaker_name} dedi ki: {last_message}"
         
         msg_payload = [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"{last_speaker_name} dedi ki: {last_message}"}
+            {"role": "user", "content": user_msg_content}
         ]
         
         response = debater.generate_response(msg_payload)
@@ -539,14 +557,14 @@ async def simulate_debate_streaming(query, history, company_info, image_base64=N
             current_debater_idx = (current_debater_idx + 1) % len(debaters)
             continue
         
-        # Parse confidence from response
+        # Parse confidence from response (supports both Turkish and English)
         confidence = 50 # Default confidence
         clean_response = response
         
-        confidence_match = re.search(r'\[GÜVEN:(\d+)%\]', response)
+        confidence_match = re.search(r'\[(GÜVEN|CONFIDENCE):?\s*(\d+)%\]', response, re.IGNORECASE)
         if confidence_match:
-            confidence = int(confidence_match.group(1))
-            clean_response = re.sub(r'\[GÜVEN:\d+%\]\s*', '', response).strip()
+            confidence = int(confidence_match.group(2))
+            clean_response = re.sub(r'\[(GÜVEN|CONFIDENCE):?\s*\d+%\]\s*', '', response, flags=re.IGNORECASE).strip()
         
         yield {"type": "message", "role": debater.name, "content": clean_response, "is_agent": True, "confidence": confidence}
         save_to_db("assistant", clean_response, agent_name=debater.name)
