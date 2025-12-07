@@ -111,7 +111,7 @@ export default function Onboarding() {
                                 required
                                 value={formData.name}
                                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-900"
                                 placeholder="Örn: Choice Foods"
                             />
                         </div>
@@ -124,7 +124,7 @@ export default function Onboarding() {
                                 required
                                 value={formData.industry}
                                 onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
-                                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-900"
                                 placeholder="E-ticaret, SaaS, Gıda..."
                             />
                         </div>
@@ -140,7 +140,7 @@ export default function Onboarding() {
                                 required
                                 value={formData.employee_count}
                                 onChange={(e) => setFormData({ ...formData, employee_count: e.target.value })}
-                                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-900"
                             >
                                 <option value="">Seçiniz...</option>
                                 {employeeOptions.map(opt => (
@@ -156,7 +156,7 @@ export default function Onboarding() {
                                 required
                                 value={formData.annual_revenue}
                                 onChange={(e) => setFormData({ ...formData, annual_revenue: e.target.value })}
-                                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-900"
                             >
                                 <option value="">Seçiniz...</option>
                                 {revenueOptions.map(opt => (
@@ -175,7 +175,7 @@ export default function Onboarding() {
                             <select
                                 value={formData.monthly_budget}
                                 onChange={(e) => setFormData({ ...formData, monthly_budget: e.target.value })}
-                                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-900"
                             >
                                 <option value="">Seçiniz (Opsiyonel)...</option>
                                 {budgetOptions.map(opt => (
@@ -191,7 +191,7 @@ export default function Onboarding() {
                                 type="url"
                                 value={formData.website_url}
                                 onChange={(e) => setFormData({ ...formData, website_url: e.target.value })}
-                                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-900"
                                 placeholder="https://..."
                             />
                         </div>
@@ -206,7 +206,7 @@ export default function Onboarding() {
                             type="text"
                             value={formData.target_market}
                             onChange={(e) => setFormData({ ...formData, target_market: e.target.value })}
-                            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-900"
                             placeholder="Örn: Türkiye'deki 25-45 yaş arası profesyoneller, B2B küçük işletmeler..."
                         />
                     </div>
@@ -220,7 +220,7 @@ export default function Onboarding() {
                             rows={3}
                             value={formData.challenges}
                             onChange={(e) => setFormData({ ...formData, challenges: e.target.value })}
-                            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-900"
                             placeholder="Örn: Nakit akışı sıkıntımız var. Büyümek istiyoruz ama kaynak sınırlı. Dijital pazarlamada zayıfız..."
                         />
                     </div>
@@ -234,7 +234,7 @@ export default function Onboarding() {
                             rows={2}
                             value={formData.description}
                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-900"
                             placeholder="Kısaca ne yapıyorsunuz?"
                         />
                     </div>
