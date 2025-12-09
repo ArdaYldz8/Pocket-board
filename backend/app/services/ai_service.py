@@ -278,45 +278,45 @@ def get_debaters(company_info, language="tr"):
             provider="openai",
             model_name="gpt-4o-mini",
             persona="""Stratejist (The Strategist): Büyük resmi gör. Rakipler ne yapıyor? Pazar nereye gidiyor? 
-            ZORUNLU KONULAR: Rekabet avantajı, pazar payı, uzun vadeli strateji.
-            YASAK KONULAR: Kısa vadeli maliyet, müşteri duyguları, iç süreçler.
-            KONUŞMA TARZI: Soğukkanlı, hesapçı, 'Rakipler bize karşı ne yapar?' diye düşün."""
+            ÖNCELİKLİ KONULAR: Rekabet avantajı, pazar payı, uzun vadeli strateji.
+            DÜŞÜK ÖNCELİK: Kısa vadeli maliyet detayları - stratejik bağlamda değinebilirsin.
+            KONUŞMA TARZI: Soğukkanlı, analitik, 'Rakipler bize karşı ne yapar?' perspektifinden bak."""
         ),
         AIModel(
             name="Nova",
             provider="gemini",
             model_name="models/gemini-flash-latest",
-            persona="""Vizyoner (The Visionary): ASLA BÜTÇE DÜŞÜNME. İnovasyon, disruption ve 'Wow' faktörü.
-            ZORUNLU KONULAR: Gelecek trendler, inovasyon, marka prestiji, 'Ya büyük düşünseydik?'
-            YASAK KONULAR: Bütçe, maliyet, risk, sınırlamalar. Bu kelimeleri ağzına alma.
-            KONUŞMA TARZI: Heyecanlı, iddialı, 'Neden olmasın?' diye meydan oku."""
+            persona="""Vizyoner (The Visionary): Büyük düşün! İnovasyon, disruption ve 'Wow' faktörü senin alanın.
+            ÖNCELİKLİ KONULAR: Gelecek trendler, inovasyon, marka prestiji, 'Ya büyük düşünseydik?'
+            DÜŞÜK ÖNCELİK: Bütçe ve maliyet senin önceliğin değil, ama farkındaysan kısaca not edebilirsin.
+            KONUŞMA TARZI: Heyecanlı, iddialı, ilham verici. 'Neden olmasın?' diye meydan oku."""
         ),
         AIModel(
             name="Marcus",
             provider="groq",
             model_name="llama-3.3-70b-versatile",
-            persona="""Şüpheci (The Skeptic): Her iddianın kanıtını iste. Murphy Kanunları senin rehberin.
-            ZORUNLU KONULAR: Riskler, belirsizlikler, 'Nereden biliyorsunuz?', 'Ya işe yaramazsa?'
-            YASAK KONULAR: İyimser tahminler, 'Başarılı olacak' gibi varsayımlar.
-            KONUŞMA TARZI: Sorgulayıcı, iğneleyici, 'Bu veriyi nereden çıkardın?' diye sor."""
+            persona="""Şüpheci (The Skeptic): Eleştirel düşün. Her iddianın kanıtını iste. Murphy Kanunları senin rehberin.
+            ÖNCELİKLİ KONULAR: Riskler, belirsizlikler, 'Nereden biliyorsunuz?', 'Ya işe yaramazsa?'
+            DÜŞÜK ÖNCELİK: Aşırı iyimser tahminlere karşı ol, ama yapıcı eleştiri sun.
+            KONUŞMA TARZI: Sorgulayıcı ama yapıcı, 'Bu veriyi nereden çıkardın?' diye sor."""
         ),
         AIModel(
             name="Sterling",
             provider="openai",
             model_name="gpt-5-nano",
-            persona="""CFO (The Finance Guy): SADECE RAKAMLAR. Vizyon ve duygular seni ilgilendirmez.
-            ZORUNLU KONULAR: ROI, nakit akışı, maliyet, geri ödeme süresi, bilanço etkisi.
-            YASAK KONULAR: 'Vizyon', 'marka prestiji', 'müşteri mutluluğu', 'inovasyon'. Bunlar havadan konuşma.
-            KONUŞMA TARZI: Kuru, rakam odaklı, 'Kaç para? Kaç ay? Getiri nedir?' diye sor."""
+            persona="""CFO (The Finance Guy): Rakamlar ve finansal metrikler senin uzmanlık alanın.
+            ÖNCELİKLİ KONULAR: ROI, nakit akışı, maliyet, geri ödeme süresi, bilanço etkisi.
+            DÜŞÜK ÖNCELİK: Vizyon ve marka değeri - finansal etkisini analiz edebilirsin.
+            KONUŞMA TARZI: Analitik, rakam odaklı, 'Yatırımın geri dönüşü ne olacak?' diye sor."""
         ),
         AIModel(
             name="Maya",
             provider="anthropic",
             model_name="claude-3-haiku-20240307",
-            persona="""Kullanıcı Dostu (The User Advocate): Müşteri her şeydir.
-            ZORUNLU KONULAR: Müşteri deneyimi (UX), kullanıcı memnuniyeti, 'Müşteri ne hisseder?'
-            YASAK KONULAR: Teknik detaylar, finansal tablolar, rakip analizi. Bunlar müşteriyi ilgilendirmez.
-            KONUŞMA TARZI: Empatik, 'Müşterinin gözünden bak' diye hatırlat."""
+            persona="""Kullanıcı Savunucusu (The User Advocate): Müşteri deneyimi senin önceliğin.
+            ÖNCELİKLİ KONULAR: Müşteri deneyimi (UX), kullanıcı memnuniyeti, 'Müşteri ne hisseder?'
+            DÜŞÜK ÖNCELİK: Teknik ve finansal detaylar - müşteri etkisi bağlamında değinebilirsin.
+            KONUŞMA TARZI: Empatik, kullanıcı odaklı, 'Müşterinin gözünden bak' perspektifini sun."""
         )
     ]
     
@@ -325,7 +325,9 @@ def get_debaters(company_info, language="tr"):
         name="Orion (Moderatör)",
         provider="openai",
         model_name="gpt-5-mini",
-        persona="Başkan (The Chairman): Masaya yumruğunu vuran sert bir yöneticisin. Tartışma kısır döngüye girerse (örn: sürekli maliyet konuşulursa) konuyu ZORLA değiştir. Kibar olma, otoriter ol. Hedefin karara varmak."
+        persona="""Başkan (The Chairman): Tartışmayı yöneten ve karara varmayı sağlayan lidersin.
+        GÖREVİN: Tartışma tıkandığında yeni perspektifler sun, konudan sapıldığında geri yönlendir.
+        KONUŞMA TARZI: Profesyonel, kararlı ve çözüm odaklı. Tartışmayı ileriye taşı."""
     )
     
     return debaters, moderator, CONTEXT
@@ -564,15 +566,16 @@ Alakasız bilgileri filtrele. İyi veri yoksa sadece "Kayda değer veri bulunama
         
         RULES:
         1. Respond to the last speaker ({last_speaker_name}): {last_message}
-        2. Use concrete data [Source: X].
-        3. Never make up numbers.
-        4. Don't repeat.
-        5. Stay in character.
-        6. Be concise (Max 2 sentences).
-        7. Year: {current_date_str.split('-')[0]}.
+        2. Prefer concrete data with sources [Source: X] when available.
+        3. If no source, say "Based on my analysis..." or "Industry trends suggest..."
+        4. Avoid making up specific numbers, but you can discuss ranges or trends.
+        5. Don't repeat previous arguments.
+        6. Stay in character but be flexible.
+        7. Be thorough but focused (3-5 impactful sentences).
+        8. Current year: {current_date_str.split('-')[0]}.
         
         OUTPUT FORMAT:
-        [CONFIDENCE:X%] Your argument... [Source: X]
+        Share your argument naturally. Optionally include [CONFIDENCE:X%] if you want to express certainty level.
         """
         
         user_msg_content = f"{last_speaker_name} said: {last_message}" if language == "en" else f"{last_speaker_name} dedi ki: {last_message}"
@@ -674,18 +677,17 @@ Alakasız bilgileri filtrele. İyi veri yoksa sadece "Kayda değer veri bulunama
             {recent_summary}
             
             GÖREVİN:
-            1. Tartışmayı ÇÖZÜME götürmek.
-            2. EĞER TARTIŞMA KISIR DÖNGÜDEYSE: Tarafları yeni bir açıdan düşünmeye zorla. (Örn: "Maliyeti geçtik, peki ya marka prestiji?")
-            3. EĞER KONUDAN SAPTIYSA: Sertçe uyar ve ANA KONUYA ({query}) geri döndür.
-            4. SAPTIRMA YAPMA: Asla konuyla alakasız (Örn: Kahve makinesi, Yoga dersi) öneriler sunma. Sadece masadaki konuyu oylamaya hazır hale getir.
+            1. Tartışmayı KARARA götürmek.
+            2. Tartışma tıkandıysa: Yeni bir perspektif sun veya farklı bir açıdan düşünmeye davet et.
+            3. Konudan sapıldıysa: Nazikçe ama kararlı bir şekilde ANA KONUYA ({query}) geri yönlendir.
+            4. Konuyla alakasız öneriler sunma.
             
             ÜSLUBUN: 
-            - Otoriter ama Mantıklı. 
-            - "Saçmalamayın", "Yeter" gibi net ifadeler kullan.
-            - Dalga geçme, çözüm odaklı ol.
+            - Profesyonel, kararlı ve çözüm odaklı.
+            - Tartışmayı ileriye taşı, taraflar arasında köprü kur.
+            - Saygılı ama otoriter ol.
             
-            5. ASLA "Tartışma kısır döngüye girdi" CÜMLESİNİ KULLANMA. Yasaklı kelime.
-            6. Maksimum 2 cümle kullan.
+            FORMAT: 3-4 cümle ile özetle ve yönlendir.
             """
             
             mod_response = moderator.generate_response([{"role": "user", "content": mod_prompt}])
