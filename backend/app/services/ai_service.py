@@ -298,8 +298,8 @@ def get_debaters(company_info, language="tr"):
         ),
         AIModel(
             name="Nova",
-            provider="gemini",
-            model_name="models/gemini-flash-latest",
+            provider="anthropic",
+            model_name="claude-3-5-haiku-20241022",
             persona="""Vizyoner (The Visionary): Büyük düşün! İnovasyon, disruption ve 'Wow' faktörü senin alanın.
             ÖNCELİKLİ KONULAR: Gelecek trendler, inovasyon, marka prestiji, 'Ya büyük düşünseydik?'
             DÜŞÜK ÖNCELİK: Bütçe ve maliyet senin önceliğin değil, ama farkındaysan kısaca not edebilirsin.
