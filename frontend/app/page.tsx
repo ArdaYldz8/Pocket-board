@@ -147,10 +147,16 @@ function BoardContent() {
   // Pre-Debate Context Expansion
   const [showContextPanel, setShowContextPanel] = useState(false);
   const [contextDetails, setContextDetails] = useState({
-    budget: '',
     timeline: '',
     constraints: ''
   });
+
+  // Clarification Request State
+  const [clarificationRequest, setClarificationRequest] = useState<{
+    agent: string;
+    question: string;
+  } | null>(null);
+  const [clarificationAnswer, setClarificationAnswer] = useState('');
 
   // Fetch History on Load or ID Change
   useEffect(() => {
@@ -231,7 +237,6 @@ function BoardContent() {
     // Build enhanced message with context details if provided
     let enhancedInput = input;
     const contextParts = [];
-    if (contextDetails.budget) contextParts.push(`Bütçe: ${contextDetails.budget}`);
     if (contextDetails.timeline) contextParts.push(`Süre: ${contextDetails.timeline}`);
     if (contextDetails.constraints) contextParts.push(`Kısıtlar: ${contextDetails.constraints}`);
 
@@ -246,7 +251,7 @@ function BoardContent() {
     setVotes(null); // Reset votes
 
     // Reset context panel after sending
-    setContextDetails({ budget: '', timeline: '', constraints: '' });
+    setContextDetails({ timeline: '', constraints: '' });
     setShowContextPanel(false);
 
     // Optimistic Update
@@ -317,6 +322,16 @@ function BoardContent() {
                 setVotes(data.votes);
               } else if (data.type === 'phase') {
                 setCurrentPhase(data.phase);
+              } else if (data.type === 'clarification_request') {
+                // Agent is asking user for clarification
+                setClarificationRequest({
+                  agent: data.agent,
+                  question: data.question
+                });
+                setIsLoading(false);
+              } else if (data.type === 'debate_paused') {
+                // Debate paused for clarification
+                setIsLoading(false);
               } else if (data.error) {
                 setMessages(prev => [...prev, { role: 'system', content: `Error: ${data.error}` }]);
                 setIsLoading(false);
@@ -331,6 +346,100 @@ function BoardContent() {
       }
     } catch (error) {
       console.error('Fetch error:', error);
+      setIsLoading(false);
+    }
+  };
+
+  // Handle clarification answer submission
+  const handleClarificationSubmit = async () => {
+    if (!clarificationAnswer.trim() || !clarificationRequest) return;
+
+    const agentName = clarificationRequest.agent;
+    const answerContent = `[${agentName}'ın sorusuna cevap]: ${clarificationAnswer}`;
+
+    // Add answer to messages
+    setMessages(prev => [...prev, {
+      role: 'user',
+      content: answerContent
+    }]);
+
+    // Clear clarification state
+    setClarificationRequest(null);
+    setClarificationAnswer('');
+    setIsLoading(true);
+
+    // Resume debate with the answer as new input
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/api/chat-stream`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          message: answerContent,
+          company_info: {
+            name: companyInfo.name,
+            industry: companyInfo.businessModel,
+            description: companyInfo.currentGoal,
+            website_url: companyInfo.websiteUrl
+          },
+          conversation_id: conversationId,
+          language: language
+        }),
+      });
+
+      if (!response.body) return;
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+
+              if (data.type === 'message') {
+                setMessages((prev) => [...prev, {
+                  role: data.role,
+                  content: data.content,
+                  agentName: data.role === 'assistant' ? data.agentName : data.role,
+                  confidence: data.confidence
+                }]);
+              } else if (data.type === 'vote_results') {
+                setVotes(data.votes);
+              } else if (data.type === 'clarification_request') {
+                setClarificationRequest({
+                  agent: data.agent,
+                  question: data.question
+                });
+                setIsLoading(false);
+              } else if (data.type === 'end' || data.type === 'debate_paused') {
+                setIsLoading(false);
+              }
+            } catch (e) {
+              console.error('JSON Parse Error', e);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Clarification resume error:', error);
       setIsLoading(false);
     }
   };
@@ -414,6 +523,52 @@ function BoardContent() {
                   Konseyi Başlat 🚀
                 </button>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Clarification Request Modal */}
+        {clarificationRequest && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full transform transition-all animate-in fade-in zoom-in duration-300">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100">
+                  <img
+                    src={`/${clarificationRequest.agent.toLowerCase().split(' ')[0]}.png`}
+                    alt={clarificationRequest.agent}
+                    className="w-full h-full object-cover"
+                    onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
+                  />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900">{clarificationRequest.agent}</h3>
+                  <p className="text-xs text-slate-500">
+                    {language === 'tr' ? 'Sizden bilgi istiyor' : 'Asking for clarification'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
+                <p className="text-slate-700 font-medium">{clarificationRequest.question}</p>
+              </div>
+
+              <input
+                type="text"
+                value={clarificationAnswer}
+                onChange={(e) => setClarificationAnswer(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleClarificationSubmit(); }}
+                className="w-full p-3 border border-slate-200 rounded-xl mb-4 focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder={language === 'tr' ? 'Cevabınızı yazın...' : 'Type your answer...'}
+                autoFocus
+              />
+
+              <button
+                onClick={handleClarificationSubmit}
+                disabled={!clarificationAnswer.trim()}
+                className="w-full py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-black transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {language === 'tr' ? 'Cevapla ve Devam Et' : 'Answer & Continue'} →
+              </button>
             </div>
           </div>
         )}
@@ -662,19 +817,7 @@ function BoardContent() {
                   {language === 'tr' ? 'Kapat' : 'Close'}
                 </button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">
-                    💰 {language === 'tr' ? 'Bütçe Tahmini' : 'Budget Estimate'}
-                  </label>
-                  <input
-                    type="text"
-                    value={contextDetails.budget}
-                    onChange={(e) => setContextDetails({ ...contextDetails, budget: e.target.value })}
-                    placeholder={language === 'tr' ? 'Örn: Max 50.000 TL' : 'E.g.: Max $50,000'}
-                    className="w-full p-2 text-sm bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  />
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">
                     ⏱️ {language === 'tr' ? 'Zaman Çizelgesi' : 'Timeline'}

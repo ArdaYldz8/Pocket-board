@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
-import { Settings as SettingsIcon, Save, RefreshCw, Building2, Globe, FileText, Target, Users, DollarSign, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Settings as SettingsIcon, Save, RefreshCw, Building2, Globe, FileText, Target, Users, AlertTriangle } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import { useLanguage } from '@/lib/LanguageContext';
 
@@ -20,8 +20,6 @@ export default function Settings() {
         description: '',
         website_url: '',
         employee_count: '',
-        annual_revenue: '',
-        monthly_budget: '',
         target_market: '',
         challenges: ''
     });
@@ -43,35 +41,7 @@ export default function Settings() {
         { value: '1000+', label: '1000+ People (Enterprise)' }
     ];
 
-    const revenueOptions = language === 'tr' ? [
-        { value: '0-100k', label: '0 - 100.000 ₺ / yıl' },
-        { value: '100k-500k', label: '100.000 - 500.000 ₺ / yıl' },
-        { value: '500k-2m', label: '500.000 - 2 Milyon ₺ / yıl' },
-        { value: '2m-10m', label: '2 - 10 Milyon ₺ / yıl' },
-        { value: '10m-50m', label: '10 - 50 Milyon ₺ / yıl' },
-        { value: '50m+', label: '50+ Milyon ₺ / yıl' }
-    ] : [
-        { value: '0-100k', label: '$0 - $10K / year' },
-        { value: '100k-500k', label: '$10K - $50K / year' },
-        { value: '500k-2m', label: '$50K - $200K / year' },
-        { value: '2m-10m', label: '$200K - $1M / year' },
-        { value: '10m-50m', label: '$1M - $5M / year' },
-        { value: '50m+', label: '$5M+ / year' }
-    ];
 
-    const budgetOptions = language === 'tr' ? [
-        { value: '0-5k', label: '0 - 5.000 ₺ / ay' },
-        { value: '5k-20k', label: '5.000 - 20.000 ₺ / ay' },
-        { value: '20k-100k', label: '20.000 - 100.000 ₺ / ay' },
-        { value: '100k-500k', label: '100.000 - 500.000 ₺ / ay' },
-        { value: '500k+', label: '500.000+ ₺ / ay' }
-    ] : [
-        { value: '0-5k', label: '$0 - $500 / month' },
-        { value: '5k-20k', label: '$500 - $2K / month' },
-        { value: '20k-100k', label: '$2K - $10K / month' },
-        { value: '100k-500k', label: '$10K - $50K / month' },
-        { value: '500k+', label: '$50K+ / month' }
-    ];
 
     useEffect(() => {
         const fetchOrgData = async () => {
@@ -103,8 +73,6 @@ export default function Settings() {
                         description: org.description || '',
                         website_url: org.website_url || '',
                         employee_count: org.employee_count || '',
-                        annual_revenue: org.annual_revenue || '',
-                        monthly_budget: org.monthly_budget || '',
                         target_market: org.target_market || '',
                         challenges: org.challenges || ''
                     });
@@ -130,8 +98,6 @@ export default function Settings() {
                     description: formData.description,
                     website_url: formData.website_url,
                     employee_count: formData.employee_count,
-                    annual_revenue: formData.annual_revenue,
-                    monthly_budget: formData.monthly_budget,
                     target_market: formData.target_market,
                     challenges: formData.challenges
                 })
@@ -220,7 +186,7 @@ export default function Settings() {
                             </div>
                         </div>
 
-                        {/* Row 2: Employee Count & Annual Revenue */}
+                        {/* Row 2: Employee Count & Website */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
@@ -240,42 +206,6 @@ export default function Settings() {
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
-                                    <TrendingUp className="w-4 h-4 text-blue-600" />
-                                    {language === 'tr' ? 'Yıllık Ciro' : 'Annual Revenue'}
-                                </label>
-                                <select
-                                    value={formData.annual_revenue}
-                                    onChange={(e) => setFormData({ ...formData, annual_revenue: e.target.value })}
-                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-900"
-                                >
-                                    <option value="">{language === 'tr' ? 'Seçiniz...' : 'Select...'}</option>
-                                    {revenueOptions.map(opt => (
-                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
-
-                        {/* Row 3: Monthly Budget & Website */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
-                                    <DollarSign className="w-4 h-4 text-blue-600" />
-                                    {language === 'tr' ? 'Aylık Yatırım Bütçesi' : 'Monthly Investment Budget'}
-                                </label>
-                                <select
-                                    value={formData.monthly_budget}
-                                    onChange={(e) => setFormData({ ...formData, monthly_budget: e.target.value })}
-                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-900"
-                                >
-                                    <option value="">{language === 'tr' ? 'Seçiniz...' : 'Select...'}</option>
-                                    {budgetOptions.map(opt => (
-                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
                                     <Globe className="w-4 h-4 text-blue-600" />
                                     {language === 'tr' ? 'Web Sitesi' : 'Website'}
                                 </label>
@@ -287,6 +217,8 @@ export default function Settings() {
                                 />
                             </div>
                         </div>
+
+
 
                         {/* Row 4: Target Market */}
                         <div>

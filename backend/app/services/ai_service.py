@@ -118,6 +118,21 @@ def search_memory_vector(query):
     except Exception:
         return []
 
+# --- CLARIFICATION REQUEST PARSER ---
+def parse_clarification(response):
+    """Check if the response contains a clarification request."""
+    match = re.search(r'\[CLARIFICATION:\s*(.+?)\]', response, re.IGNORECASE)
+    if match:
+        question = match.group(1).strip()
+        # Clean the response by removing the clarification tag
+        clean_response = re.sub(r'\[CLARIFICATION:\s*.+?\]', '', response, flags=re.IGNORECASE).strip()
+        return {
+            "has_clarification": True,
+            "question": question,
+            "clean_response": clean_response
+        }
+    return {"has_clarification": False, "question": None, "clean_response": response}
+
 # --- VISION ANALYSIS ---
 def analyze_image(image_base64, api_key=None):
     """Analyzes an image using GPT-4o-mini."""
@@ -251,25 +266,24 @@ def get_debaters(company_info, language="tr"):
     Şirket Adı: {c_name}
     Sektör: {c_industry}
     Çalışan Sayısı: {c_employees}
-    Yıllık Ciro: {c_revenue}
-    Aylık Yatırım Bütçesi: {c_budget}
     Hedef Kitle: {c_target}
     Mevcut Zorluklar: {c_challenges}
     Açıklama: {c_description}
     
-    ⚠️ KRİTİK: Yukarıdaki şirket profilini her kararında göz önünde bulundur!
-    - Eğer şirket "1-5 Kişi" ise, 100.000$ harcama önerme, bu onlar için çok büyük.
-    - Eğer şirket "Yıllık 0-100k ₺ ciro" yapıyorsa, milyon dolarlık projeler konuşma.
-    - Eğer "Nakit akışı sıkıntısı" zorluk olarak belirtilmişse, büyük yatırımlar önermeden önce bunu dile getir.
-    
     Sen Pocket Board'un (Cebindeki Yönetim Kurulu) bir üyesisin. Rakiplerinle bu konuyu tartışacaksın.
-    Eğer talep şirket profiline uymuyorsa (Örn: 6 kişilik firmaya 100k$ harcama), bunu sertçe eleştir.
+    
+    💡 NETLİK TALEBİ YETKİSİ:
+    Eğer karar vermek için kritik bir bilgi eksikse (bütçe, zaman, kaynak, teknik detay vb.):
+    - Tartışmayı DURDUR ve kullanıcıya sor
+    - Format: [CLARIFICATION: Sorunuz buraya?]
+    - Örnek: [CLARIFICATION: Bu proje için ayırabileceğiniz maksimum bütçe nedir?]
+    - Her turda en fazla 1 clarification sorabilirsin. Gereksiz soru sorma.
     
     ÖNEMLİ:
     - Bir önceki konuşmacının verdiği RASTGELE SAYILARI (Örn: $2.5M kar, %75 dönüşüm) gerçekmiş gibi tekrarlama.
     - Eğer kaynakta yoksa, bu sayıların "tahmini" veya "uydurma" olduğunu yüzüne vur.
     
-    🌐 DİL KURALI: Kullanıcının sorusu hangi dildeyse, MUTLAKA O DİLDE cevap ver. Eğer soru İngilizce ise İngilizce, Türkçe ise Türkçe cevap ver.
+    🌐 DİL KURALI: Kullanıcının sorusu hangi dildeyse, MUTLAKA O DİLDE cevap ver.
     """
 
     debaters = [
@@ -604,6 +618,25 @@ Alakasız bilgileri filtrele. İyi veri yoksa sadece "Kayda değer veri bulunama
         if confidence_match:
             confidence = int(confidence_match.group(2))
             clean_response = re.sub(r'\[(GÜVEN|CONFIDENCE):?\s*\d+%\]\s*', '', response, flags=re.IGNORECASE).strip()
+        
+        # --- CLARIFICATION DETECTION ---
+        clarification_result = parse_clarification(clean_response)
+        if clarification_result["has_clarification"]:
+            # Send the agent's message first (if any content before clarification)
+            if clarification_result["clean_response"]:
+                yield {"type": "message", "role": debater.name, "content": clarification_result["clean_response"], "is_agent": True, "confidence": confidence}
+                save_to_db("assistant", clarification_result["clean_response"], agent_name=debater.name)
+            
+            # Send clarification request to frontend
+            yield {
+                "type": "clarification_request",
+                "agent": debater.name,
+                "question": clarification_result["question"]
+            }
+            
+            # Store pause state
+            yield {"type": "debate_paused", "reason": "clarification_needed"}
+            return  # Pause debate - frontend will handle continuation
         
         yield {"type": "message", "role": debater.name, "content": clean_response, "is_agent": True, "confidence": confidence}
         save_to_db("assistant", clean_response, agent_name=debater.name)
