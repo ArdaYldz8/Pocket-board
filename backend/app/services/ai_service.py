@@ -279,6 +279,11 @@ def get_debaters(company_info, language="tr"):
     - Örnek: [CLARIFICATION: Bu proje için ayırabileceğiniz maksimum bütçe nedir?]
     - Her turda en fazla 1 clarification sorabilirsin. Gereksiz soru sorma.
     
+    ⚠️ BAĞLAM KORUMA (ÖNEMLİ):
+    - Kullanıcı bir soruya cevap verdiyse (ör: "[X'ın sorusuna cevap]: 30000 TL"), bu bilgiyi KABUL ET ve KULLAN.
+    - Aynı bilgiyi tekrar SORMA. Kullanıcı bütçesini söylediyse, "bu bütçeyle ne yapacaksın" diye sorma.
+    - Verilen cevabı tartışmaya dahil et ve ilerlemeye devam et.
+    
     ÖNEMLİ:
     - Bir önceki konuşmacının verdiği RASTGELE SAYILARI (Örn: $2.5M kar, %75 dönüşüm) gerçekmiş gibi tekrarlama.
     - Eğer kaynakta yoksa, bu sayıların "tahmini" veya "uydurma" olduğunu yüzüne vur.
@@ -346,7 +351,7 @@ def get_debaters(company_info, language="tr"):
     
     return debaters, moderator, CONTEXT
 
-async def simulate_debate_streaming(query, history, company_info, image_base64=None, api_key=None, conversation_id=None, language="tr"):
+async def simulate_debate_streaming(query, history, company_info, image_base64=None, api_key=None, conversation_id=None, language="tr", is_clarification_response=False):
     debaters, moderator, context = get_debaters(company_info, language)
     
     # Helper to save to DB asynchronously
@@ -380,118 +385,123 @@ async def simulate_debate_streaming(query, history, company_info, image_base64=N
         yield {"type": "message", "role": "System" if language == "en" else "Sistem", "content": f"{vision_label}\n{image_description}", "is_agent": False}
 
     
-    # --- 0.5 WEB SEARCH & OPTION EXTRACTION ---
-    yield {"type": "typing", "agent": "System" if language == "en" else "Sistem"}
-    
-    # NOTE: Voting options are now determined AFTER the debate ends, 
-    # based on actual arguments made during discussion.
-    # This prevents "tunnel vision" on open-ended questions.
-    
-
-    # --- 1. WEBSITE ANALYSIS ---
-    website_url = company_info.get('website_url')
+    # --- SKIP HEAVY OPERATIONS FOR CLARIFICATION RESPONSES ---
     website_content = ""
-    if website_url:
+    search_results = ""
+    
+    if not is_clarification_response:
+        # --- 0.5 WEB SEARCH & OPTION EXTRACTION ---
         yield {"type": "typing", "agent": "System" if language == "en" else "Sistem"}
-        analyzing_msg = f"🌐 **Analyzing Website:** {website_url}" if language == "en" else f"🌐 **Web Sitesi Analiz Ediliyor:** {website_url}"
-        yield {"type": "message", "role": "System" if language == "en" else "Sistem", "content": analyzing_msg, "is_agent": False}
-        raw_website_content = scrape_website(website_url)
         
-        # Use Moderator (or first agent) to summarize the website content
-        # We use a temporary prompt to the moderator model
+        # NOTE: Voting options are now determined AFTER the debate ends, 
+        # based on actual arguments made during discussion.
+        # This prevents "tunnel vision" on open-ended questions.
+    
+
+        # --- 1. WEBSITE ANALYSIS ---
+        website_url = company_info.get('website_url')
+        website_content = ""
+        if website_url:
+            yield {"type": "typing", "agent": "System" if language == "en" else "Sistem"}
+            analyzing_msg = f"🌐 **Analyzing Website:** {website_url}" if language == "en" else f"🌐 **Web Sitesi Analiz Ediliyor:** {website_url}"
+            yield {"type": "message", "role": "System" if language == "en" else "Sistem", "content": analyzing_msg, "is_agent": False}
+            raw_website_content = scrape_website(website_url)
+        
+            # Use Moderator (or first agent) to summarize the website content
+            # We use a temporary prompt to the moderator model
+            if language == "en":
+                analysis_prompt = f"""Analyze this website and give a SHORT summary (max 5 bullet points).
+
+    RAW TEXT:
+    {raw_website_content[:2500]}
+
+    FORMAT (use simple bullets, NO markdown symbols):
+    • Company: [name - industry]
+    • Business: [what they do in 1 sentence]
+    • Products: [top 3-5 products]  
+    • Values: [key message/slogan]
+    • Target: [who they serve]
+
+    Keep it SHORT and CLEAN. No long paragraphs."""
+            else:
+                analysis_prompt = f"""Bu web sitesini analiz et ve KISA bir özet ver (max 5 madde).
+
+    HAM METİN:
+    {raw_website_content[:2500]}
+
+    FORMAT (basit maddeler kullan, markdown KULLANMA):
+    • Şirket: [isim - sektör]
+    • İş: [ne yaptıkları 1 cümle]
+    • Ürünler: [en önemli 3-5 ürün]
+    • Değerler: [ana mesaj/slogan]
+    • Hedef: [kime hizmet ediyorlar]
+
+    KISA ve TEMİZ tut. Uzun paragraflar yazma."""
+        
+            try:
+                website_content = moderator.generate_response([{"role": "user", "content": analysis_prompt}])
+            except:
+                error_msg = "Could not analyze website." if language == "en" else "Site analiz edilemedi."
+                website_content = error_msg
+
+            save_to_db("system", website_content)
+            yield {"type": "message", "role": "System" if language == "en" else "Sistem", "content": website_content, "is_agent": False}
+
+        # --- 1. PERFORM WEB SEARCH ---
+        yield {"type": "typing", "agent": "System" if language == "en" else "Sistem"}
+    
+        # Optimize Search Query
+        search_optimizer = debaters[0] # Use the first agent (usually GPT-4o-mini) for optimization
         if language == "en":
-            analysis_prompt = f"""Analyze this website and give a SHORT summary (max 5 bullet points).
-
-RAW TEXT:
-{raw_website_content[:2500]}
-
-FORMAT (use simple bullets, NO markdown symbols):
-• Company: [name - industry]
-• Business: [what they do in 1 sentence]
-• Products: [top 3-5 products]  
-• Values: [key message/slogan]
-• Target: [who they serve]
-
-Keep it SHORT and CLEAN. No long paragraphs."""
+            opt_prompt = [
+                {"role": "system", "content": f"You are a search engine expert. TODAY'S DATE: {datetime.now().strftime('%Y-%m-%d')}. Analyze the user's discussion topic and write the BEST Google search query to find CURRENT concrete data (costs, statistics, news, trends).\n\nRULES:\n1. Write only the query, nothing else.\n2. Search in the language of the user's question and INCLUDE THE YEAR (e.g., '2025 trends')."},
+                {"role": "user", "content": f"Topic: {query}\nCompany: {company_info.get('name')} ({company_info.get('industry')})"}
+            ]
         else:
-            analysis_prompt = f"""Bu web sitesini analiz et ve KISA bir özet ver (max 5 madde).
+            opt_prompt = [
+                {"role": "system", "content": f"Sen bir arama motoru uzmanısın. BUGÜNÜN TARİHİ: {datetime.now().strftime('%Y-%m-%d')}. Kullanıcının tartışma konusunu analiz et ve bu konuda GÜNCEL somut veriler (maliyet, istatistik, haber, trendler) bulmak için EN İYİ Google arama sorgusunu yaz.\n\nKURALLAR:\n1. Sadece sorguyu yaz, başka hiçbir şey yazma.\n2. Kullanıcının sorusu hangi dildeyse, aramayı O DİLDE yap ve YILI BELİRT (Örn: '2025 trends')."},
+                {"role": "user", "content": f"Konu: {query}\nŞirket: {company_info.get('name')} ({company_info.get('industry')})"}
+            ]
+        optimized_query = search_optimizer.generate_response(opt_prompt).strip().replace('"', '')
+    
+        raw_search_results = perform_web_search(optimized_query)
+    
+        # Use Moderator to summarize the search results
+        if language == "en":
+            research_prompt = f"""Give a SHORT market research summary about: {query}
 
-HAM METİN:
-{raw_website_content[:2500]}
+    SEARCH RESULTS:
+    {raw_search_results[:2000]}
 
-FORMAT (basit maddeler kullan, markdown KULLANMA):
-• Şirket: [isim - sektör]
-• İş: [ne yaptıkları 1 cümle]
-• Ürünler: [en önemli 3-5 ürün]
-• Değerler: [ana mesaj/slogan]
-• Hedef: [kime hizmet ediyorlar]
+    FORMAT (max 4 bullet points, NO markdown, keep each point SHORT):
+    • Trends: [1-2 key trends]
+    • Stats: [any numbers found, or "No data"]
+    • News: [1-2 recent headlines if any]
+    • Recommendation: [1 sentence advice]
 
-KISA ve TEMİZ tut. Uzun paragraflar yazma."""
-        
+    Filter out irrelevant info. If no good data found, just say "No significant data found." Keep it under 100 words total."""
+        else:
+            research_prompt = f"""Şu konu hakkında KISA bir pazar araştırması özeti ver: {query}
+
+    ARAMA SONUÇLARI:
+    {raw_search_results[:2000]}
+
+    FORMAT (max 4 madde, markdown KULLANMA, her madde KISA olsun):
+    • Trendler: [1-2 ana trend]
+    • İstatistik: [bulunan rakamlar, yoksa "Veri yok"]
+    • Haberler: [varsa 1-2 güncel başlık]
+    • Tavsiye: [1 cümle öneri]
+
+    Alakasız bilgileri filtrele. İyi veri yoksa sadece "Kayda değer veri bulunamadı" de. Toplam 100 kelimeyi geçme."""
+    
         try:
-            website_content = moderator.generate_response([{"role": "user", "content": analysis_prompt}])
+            search_results = moderator.generate_response([{"role": "user", "content": research_prompt}])
         except:
-            error_msg = "Could not analyze website." if language == "en" else "Site analiz edilemedi."
-            website_content = error_msg
+            error_msg = "Could not complete research." if language == "en" else "Araştırma tamamlanamadı."
+            search_results = error_msg
 
-        save_to_db("system", website_content)
-        yield {"type": "message", "role": "System" if language == "en" else "Sistem", "content": website_content, "is_agent": False}
-
-    # --- 1. PERFORM WEB SEARCH ---
-    yield {"type": "typing", "agent": "System" if language == "en" else "Sistem"}
-    
-    # Optimize Search Query
-    search_optimizer = debaters[0] # Use the first agent (usually GPT-4o-mini) for optimization
-    if language == "en":
-        opt_prompt = [
-            {"role": "system", "content": f"You are a search engine expert. TODAY'S DATE: {datetime.now().strftime('%Y-%m-%d')}. Analyze the user's discussion topic and write the BEST Google search query to find CURRENT concrete data (costs, statistics, news, trends).\n\nRULES:\n1. Write only the query, nothing else.\n2. Search in the language of the user's question and INCLUDE THE YEAR (e.g., '2025 trends')."},
-            {"role": "user", "content": f"Topic: {query}\nCompany: {company_info.get('name')} ({company_info.get('industry')})"}
-        ]
-    else:
-        opt_prompt = [
-            {"role": "system", "content": f"Sen bir arama motoru uzmanısın. BUGÜNÜN TARİHİ: {datetime.now().strftime('%Y-%m-%d')}. Kullanıcının tartışma konusunu analiz et ve bu konuda GÜNCEL somut veriler (maliyet, istatistik, haber, trendler) bulmak için EN İYİ Google arama sorgusunu yaz.\n\nKURALLAR:\n1. Sadece sorguyu yaz, başka hiçbir şey yazma.\n2. Kullanıcının sorusu hangi dildeyse, aramayı O DİLDE yap ve YILI BELİRT (Örn: '2025 trends')."},
-            {"role": "user", "content": f"Konu: {query}\nŞirket: {company_info.get('name')} ({company_info.get('industry')})"}
-        ]
-    optimized_query = search_optimizer.generate_response(opt_prompt).strip().replace('"', '')
-    
-    raw_search_results = perform_web_search(optimized_query)
-    
-    # Use Moderator to summarize the search results
-    if language == "en":
-        research_prompt = f"""Give a SHORT market research summary about: {query}
-
-SEARCH RESULTS:
-{raw_search_results[:2000]}
-
-FORMAT (max 4 bullet points, NO markdown, keep each point SHORT):
-• Trends: [1-2 key trends]
-• Stats: [any numbers found, or "No data"]
-• News: [1-2 recent headlines if any]
-• Recommendation: [1 sentence advice]
-
-Filter out irrelevant info. If no good data found, just say "No significant data found." Keep it under 100 words total."""
-    else:
-        research_prompt = f"""Şu konu hakkında KISA bir pazar araştırması özeti ver: {query}
-
-ARAMA SONUÇLARI:
-{raw_search_results[:2000]}
-
-FORMAT (max 4 madde, markdown KULLANMA, her madde KISA olsun):
-• Trendler: [1-2 ana trend]
-• İstatistik: [bulunan rakamlar, yoksa "Veri yok"]
-• Haberler: [varsa 1-2 güncel başlık]
-• Tavsiye: [1 cümle öneri]
-
-Alakasız bilgileri filtrele. İyi veri yoksa sadece "Kayda değer veri bulunamadı" de. Toplam 100 kelimeyi geçme."""
-    
-    try:
-        search_results = moderator.generate_response([{"role": "user", "content": research_prompt}])
-    except:
-        error_msg = "Could not complete research." if language == "en" else "Araştırma tamamlanamadı."
-        search_results = error_msg
-
-    save_to_db("system", search_results)
-    yield {"type": "message", "role": "System" if language == "en" else "Sistem", "content": search_results, "is_agent": False}
+        save_to_db("system", search_results)
+        yield {"type": "message", "role": "System" if language == "en" else "Sistem", "content": search_results, "is_agent": False}
     
     # --- 2. LOAD MEMORY (VECTOR) ---
     past_decisions = search_memory_vector(query)

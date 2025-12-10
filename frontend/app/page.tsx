@@ -393,7 +393,8 @@ function BoardContent() {
             website_url: companyInfo.websiteUrl
           },
           conversation_id: conversationId,
-          language: language
+          language: language,
+          is_clarification_response: true
         }),
       });
 

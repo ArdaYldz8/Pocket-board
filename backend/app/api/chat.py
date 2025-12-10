@@ -26,6 +26,7 @@ class ChatRequest(BaseModel):
     image: Optional[str] = None # Base64 encoded image
     conversation_id: Optional[str] = None
     language: Optional[str] = "tr" # Default to Turkish, can be "en" for English
+    is_clarification_response: Optional[bool] = False  # Skip web search if true
 
 @router.get("/history")
 async def get_chat_history(conversation_id: Optional[str] = None, current_user: dict = Depends(get_current_user)):
@@ -180,7 +181,7 @@ async def chat_stream(request: ChatRequest, current_user: dict = Depends(get_cur
             yield f"data: {json.dumps({'type': 'meta', 'conversation_id': conversation_id}, ensure_ascii=False)}\n\n"
 
             # Use async generator to stream messages
-            async for message in simulate_debate_streaming(request.message, request.history, c_info, image_base64=request.image, conversation_id=conversation_id, language=request.language or "tr"):
+            async for message in simulate_debate_streaming(request.message, request.history, c_info, image_base64=request.image, conversation_id=conversation_id, language=request.language or "tr", is_clarification_response=request.is_clarification_response or False):
                 yield f"data: {json.dumps(message, ensure_ascii=False)}\n\n"
                 
         except Exception as e:
