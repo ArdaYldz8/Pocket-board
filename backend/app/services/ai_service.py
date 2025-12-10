@@ -272,21 +272,19 @@ def get_debaters(company_info, language="tr"):
     
     Sen Pocket Board'un (Cebindeki Yönetim Kurulu) bir üyesisin. Rakiplerinle bu konuyu tartışacaksın.
     
-    💡 NETLİK TALEBİ YETKİSİ:
-    Eğer karar vermek için kritik bir bilgi eksikse (bütçe, zaman, kaynak, teknik detay vb.):
-    - Tartışmayı DURDUR ve kullanıcıya sor
-    - Format: [CLARIFICATION: Sorunuz buraya?]
-    - Örnek: [CLARIFICATION: Bu proje için ayırabileceğiniz maksimum bütçe nedir?]
-    - Her turda en fazla 1 clarification sorabilirsin. Gereksiz soru sorma.
+    🚫 KESİNLİKLE SORU SORMA:
+    - Kullanıcıya HİÇBİR KOŞULDA soru sorma.
+    - Bilgi eksikse, varsayımlarla devam et veya alternatif senaryolar sun.
+    - "[CLARIFICATION:" formatını KULLANMA.
     
-    ⚠️ BAĞLAM KORUMA (ÖNEMLİ):
-    - Kullanıcı bir soruya cevap verdiyse (ör: "[X'ın sorusuna cevap]: 30000 TL"), bu bilgiyi KABUL ET ve KULLAN.
-    - Aynı bilgiyi tekrar SORMA. Kullanıcı bütçesini söylediyse, "bu bütçeyle ne yapacaksın" diye sorma.
-    - Verilen cevabı tartışmaya dahil et ve ilerlemeye devam et.
+    📝 KISA VE ÖZ OL:
+    - Maksimum 2-3 cümle ile fikrini belirt.
+    - Gereksiz tekrar yapma, önceki konuşmacının söylediklerini özetleme.
+    - Doğrudan konuya gir, uzun giriş yapma.
     
     ÖNEMLİ:
-    - Bir önceki konuşmacının verdiği RASTGELE SAYILARI (Örn: $2.5M kar, %75 dönüşüm) gerçekmiş gibi tekrarlama.
-    - Eğer kaynakta yoksa, bu sayıların "tahmini" veya "uydurma" olduğunu yüzüne vur.
+    - Bir önceki konuşmacının verdiği RASTGELE SAYILARI gerçekmiş gibi tekrarlama.
+    - Eğer kaynakta yoksa, bu sayıların "tahmini" olduğunu belirt.
     
     🌐 DİL KURALI: Kullanıcının sorusu hangi dildeyse, MUTLAKA O DİLDE cevap ver.
     """
@@ -521,9 +519,9 @@ async def simulate_debate_streaming(query, history, company_info, image_base64=N
     # Track each agent's statements for contradiction detection
     agent_history = {d.name: [] for d in debaters}
     
-    # Track how many times each agent has spoken (max 3 per agent)
+    # Track how many times each agent has spoken (max 2 per agent)
     agent_speak_count = {d.name: 0 for d in debaters}
-    MAX_SPEAKS_PER_AGENT = 3
+    MAX_SPEAKS_PER_AGENT = 2  # Reduced from 3
     
     # Global summary of all arguments made so far to prevent repetition
     all_arguments_so_far = []
@@ -531,8 +529,8 @@ async def simulate_debate_streaming(query, history, company_info, image_base64=N
     # Start with random debater
     current_debater_idx = 0
     
-    # Reduced max turns for shorter, focused debates
-    max_turns = 8  # Each agent speaks ~2 times on average
+    # Very short debates - quick to the point
+    max_turns = 5  # Reduced from 8 - each agent speaks 1-2 times max
     
     for turn in range(max_turns):
         debater = debaters[current_debater_idx]
@@ -655,24 +653,7 @@ async def simulate_debate_streaming(query, history, company_info, image_base64=N
             confidence = int(confidence_match.group(2))
             clean_response = re.sub(r'\[(GÜVEN|CONFIDENCE):?\s*\d+%\]\s*', '', response, flags=re.IGNORECASE).strip()
         
-        # --- CLARIFICATION DETECTION ---
-        clarification_result = parse_clarification(clean_response)
-        if clarification_result["has_clarification"]:
-            # Send the agent's message first (if any content before clarification)
-            if clarification_result["clean_response"]:
-                yield {"type": "message", "role": debater.name, "content": clarification_result["clean_response"], "is_agent": True, "confidence": confidence}
-                save_to_db("assistant", clarification_result["clean_response"], agent_name=debater.name)
-            
-            # Send clarification request to frontend
-            yield {
-                "type": "clarification_request",
-                "agent": debater.name,
-                "question": clarification_result["question"]
-            }
-            
-            # Store pause state
-            yield {"type": "debate_paused", "reason": "clarification_needed"}
-            return  # Pause debate - frontend will handle continuation
+        # NOTE: Clarification feature disabled - agents no longer ask questions
         
         yield {"type": "message", "role": debater.name, "content": clean_response, "is_agent": True, "confidence": confidence}
         save_to_db("assistant", clean_response, agent_name=debater.name)
