@@ -511,16 +511,42 @@ Alakasız bilgileri filtrele. İyi veri yoksa sadece "Kayda değer veri bulunama
     # Track each agent's statements for contradiction detection
     agent_history = {d.name: [] for d in debaters}
     
+    # Track how many times each agent has spoken (max 3 per agent)
+    agent_speak_count = {d.name: 0 for d in debaters}
+    MAX_SPEAKS_PER_AGENT = 3
+    
     # Global summary of all arguments made so far to prevent repetition
     all_arguments_so_far = []
     
     # Start with random debater
     current_debater_idx = 0
     
-    max_turns = 12 # Increased for 3 agents
+    # Reduced max turns for shorter, focused debates
+    max_turns = 8  # Each agent speaks ~2 times on average
     
     for turn in range(max_turns):
         debater = debaters[current_debater_idx]
+        
+        # Check if this agent has reached their speaking limit
+        if agent_speak_count[debater.name] >= MAX_SPEAKS_PER_AGENT:
+            # Find next agent who hasn't reached limit
+            found_available = False
+            for i in range(len(debaters)):
+                candidate_idx = (current_debater_idx + i + 1) % len(debaters)
+                if agent_speak_count[debaters[candidate_idx].name] < MAX_SPEAKS_PER_AGENT:
+                    current_debater_idx = candidate_idx
+                    debater = debaters[current_debater_idx]
+                    found_available = True
+                    break
+            
+            # If all agents reached limit, go to voting
+            if not found_available:
+                break
+        
+        # Check if all agents have spoken at least once - can trigger early voting
+        all_spoke_once = all(count >= 1 for count in agent_speak_count.values())
+        if all_spoke_once and turn >= 5:  # After 5 turns, if all spoke, start voting
+            break
         
         # Pick an opponent (the previous speaker, or random if first turn)
         # In a multi-agent setup, we usually address the group or the last speaker.
@@ -643,6 +669,10 @@ Alakasız bilgileri filtrele. İyi veri yoksa sadece "Kayda değer veri bulunama
         
         messages.append({"role": "assistant", "content": clean_response})
         
+        # Increment agent speak count
+        agent_speak_count[debater.name] += 1
+        
+        
         # --- CONTRADICTION DETECTION ---
         if len(agent_history[debater.name]) >= 1:
             # Check for contradictions with previous statements
@@ -745,186 +775,186 @@ Alakasız bilgileri filtrele. İyi veri yoksa sadece "Kayda değer veri bulunama
             next_idx = random.choice(candidates)
             
         current_debater_idx = next_idx
+    
+    # --- VOTING ROUND (always runs after debate ends) ---
+    # --- VOTING ROUND ---
+    yield {"type": "typing", "agent": "Sistem"}
+    await asyncio.sleep(1)
+    yield {"type": "message", "role": "Sistem", "content": "🏁 Tartışma Sona Erdi. Seçenekler Belirleniyor...", "is_agent": False}
+            
+    # --- EXTRACT VOTING OPTIONS FROM DEBATE ---
+    # Summarize all arguments to create meaningful options
+    debate_summary = "\n".join([m['content'] for m in messages[-10:] if m.get('role') == 'assistant'])
+    
+    option_extract_prompt = f"""
+    GÖREV: Aşağıdaki tartışmayı analiz et ve OY VERİLEBİLECEK somut seçenekler çıkar.
+    
+    KONU: {query}
+    
+    TARTIŞMA ÖZETİ:
+    {debate_summary[:2000]}
+    
+    KURALLAR:
+    1. Tartışmada öne çıkan FARKLI görüşleri/önerileri seçenek olarak belirle.
+    2. Eğer tartışmada somut rakamlar verilmişse (Örn: "700 USD", "2000 USD"), bunları seçeneklere dahil et.
+    3. Eğer karar Evet/Hayır'a indirgenebiliyorsa, sadece 2 seçenek yaz.
+    4. Açık uçlu sorularda, tartışmada ortaya çıkan farklı stratejileri/yaklaşımları listele.
+    5. Maksimum 4, minimum 2 seçenek olsun.
+    6. Çıktı SADECE JSON formatında bir liste olsun: ["Seçenek 1", "Seçenek 2", ...]
+    
+    ÖNEMLİ: Seçenekler TARTIŞMADAN çıkmalı, uydurma olmamalı.
+    """
+    
+    try:
+        opt_response = moderator.generate_response([{"role": "user", "content": option_extract_prompt}])
+        voting_options = json.loads(opt_response.replace("```json", "").replace("```", "").strip())
         
-        if turn == max_turns - 1:
-            # --- VOTING ROUND ---
-            yield {"type": "typing", "agent": "Sistem"}
-            await asyncio.sleep(1)
-            yield {"type": "message", "role": "Sistem", "content": "🏁 Tartışma Sona Erdi. Seçenekler Belirleniyor...", "is_agent": False}
-            
-            # --- EXTRACT VOTING OPTIONS FROM DEBATE ---
-            # Summarize all arguments to create meaningful options
-            debate_summary = "\n".join([m['content'] for m in messages[-10:] if m.get('role') == 'assistant'])
-            
-            option_extract_prompt = f"""
-            GÖREV: Aşağıdaki tartışmayı analiz et ve OY VERİLEBİLECEK somut seçenekler çıkar.
-            
-            KONU: {query}
-            
-            TARTIŞMA ÖZETİ:
-            {debate_summary[:2000]}
-            
-            KURALLAR:
-            1. Tartışmada öne çıkan FARKLI görüşleri/önerileri seçenek olarak belirle.
-            2. Eğer tartışmada somut rakamlar verilmişse (Örn: "700 USD", "2000 USD"), bunları seçeneklere dahil et.
-            3. Eğer karar Evet/Hayır'a indirgenebiliyorsa, sadece 2 seçenek yaz.
-            4. Açık uçlu sorularda, tartışmada ortaya çıkan farklı stratejileri/yaklaşımları listele.
-            5. Maksimum 4, minimum 2 seçenek olsun.
-            6. Çıktı SADECE JSON formatında bir liste olsun: ["Seçenek 1", "Seçenek 2", ...]
-            
-            ÖNEMLİ: Seçenekler TARTIŞMADAN çıkmalı, uydurma olmamalı.
-            """
-            
+        # Validate
+        if not isinstance(voting_options, list) or len(voting_options) < 2:
+            voting_options = ["KABUL", "RED"]
+    except:
+        voting_options = ["KABUL", "RED"]
+
+    voting_options_str = ", ".join(voting_options)
+    system_msg_content = f"🎯 **Oylama Seçenekleri:** {voting_options_str}"
+    save_to_db("system", system_msg_content)
+    yield {"type": "message", "role": "Sistem", "content": system_msg_content, "is_agent": False}
+    
+    votes = []
+    
+    for d in debaters:
+        vote_prompt = f"""
+        {context}
+        KONU: {query}
+        TARTIŞMA GEÇMİŞİ: {messages[-5:]}
+        
+        MEVCUT SEÇENEKLER: {voting_options_str}
+        
+        SEN: {d.name} ({d.persona})
+        
+        GÖREVİN:
+        Bu konuyu oyla. SADECE yukarıdaki seçeneklerden birini seç.
+        Seçeneği TAM OLARAK VE HARFİ HARFİNE kopyala. ("YAP" yerine "YAP (Satın Al)" yaz).
+        
+        Çıktı formatı SADECE JSON olmalı:
+        {{"decision": "TAM_SEÇENEK_İSMİ", "reason": "Tek cümlelik kısa gerekçe"}}
+        """
+        
+        # Retry logic for JSON
+        max_retries = 2
+        vote_data = {"decision": "ÇEKİMSER", "reason": "Oylama hatası."}
+        
+        for attempt in range(max_retries):
             try:
-                opt_response = moderator.generate_response([{"role": "user", "content": option_extract_prompt}])
-                voting_options = json.loads(opt_response.replace("```json", "").replace("```", "").strip())
+                vote_response = d.generate_response([{"role": "user", "content": vote_prompt}])
+                # Clean json markdown if present
+                vote_response = vote_response.replace("```json", "").replace("```", "").strip()
+                vote_data = json.loads(vote_response)
                 
-                # Validate
-                if not isinstance(voting_options, list) or len(voting_options) < 2:
-                    voting_options = ["KABUL", "RED"]
+                break 
             except:
-                voting_options = ["KABUL", "RED"]
+                if attempt == max_retries - 1:
+                    print(f"Voting failed for {d.name} after retries.")
+                continue
 
-            voting_options_str = ", ".join(voting_options)
-            system_msg_content = f"🎯 **Oylama Seçenekleri:** {voting_options_str}"
-            save_to_db("system", system_msg_content)
-            yield {"type": "message", "role": "Sistem", "content": system_msg_content, "is_agent": False}
+        decision = vote_data.get("decision", "ÇEKİMSER").upper()
+        
+        # NORMALIZE VOTE: Fuzzy match to nearest option (Best Score)
+        # This fixes "YAP" vs "YAP (Satın Al)" and prevents "YAPMA" -> "YAP" overlap errors
+        import difflib
+        
+        best_match = decision
+        highest_ratio = 0.0
+        
+        for optic in voting_options:
+            # Calculate similarity ratio
+            ratio = difflib.SequenceMatcher(None, decision, optic.upper()).ratio()
             
-            votes = []
+            # Bonus for substring match (e.g. "YAP" inside "YAP (Satın Al)")
+            if decision in optic.upper():
+                ratio += 0.2
             
-            for d in debaters:
-                vote_prompt = f"""
-                {context}
-                KONU: {query}
-                TARTIŞMA GEÇMİŞİ: {messages[-5:]}
-                
-                MEVCUT SEÇENEKLER: {voting_options_str}
-                
-                SEN: {d.name} ({d.persona})
-                
-                GÖREVİN:
-                Bu konuyu oyla. SADECE yukarıdaki seçeneklerden birini seç.
-                Seçeneği TAM OLARAK VE HARFİ HARFİNE kopyala. ("YAP" yerine "YAP (Satın Al)" yaz).
-                
-                Çıktı formatı SADECE JSON olmalı:
-                {{"decision": "TAM_SEÇENEK_İSMİ", "reason": "Tek cümlelik kısa gerekçe"}}
-                """
-                
-                # Retry logic for JSON
-                max_retries = 2
-                vote_data = {"decision": "ÇEKİMSER", "reason": "Oylama hatası."}
-                
-                for attempt in range(max_retries):
-                    try:
-                        vote_response = d.generate_response([{"role": "user", "content": vote_prompt}])
-                        # Clean json markdown if present
-                        vote_response = vote_response.replace("```json", "").replace("```", "").strip()
-                        vote_data = json.loads(vote_response)
-                        
-                        break 
-                    except:
-                        if attempt == max_retries - 1:
-                            print(f"Voting failed for {d.name} after retries.")
-                        continue
+            if ratio > highest_ratio:
+                highest_ratio = ratio
+                best_match = optic
+        
+        # Threshold to accept match (e.g. 0.4)
+        if highest_ratio > 0.4:
+            final_decision = best_match
+        else:
+            final_decision = decision # Keep original if NO match found
+        
+        votes.append({
+            "agent": d.name,
+            "persona": d.persona.split(":")[0],
+            "decision": final_decision,
+            "reason": vote_data.get("reason", "...")
+        })
+    
+    # Determine Final Result
+    vote_counts = {}
+    for v in votes:
+        decision = v['decision']
+        vote_counts[decision] = vote_counts.get(decision, 0) + 1
+    
+    final_decision = max(vote_counts, key=vote_counts.get) if votes else "ÇEKİMSER"
 
-                decision = vote_data.get("decision", "ÇEKİMSER").upper()
-                
-                # NORMALIZE VOTE: Fuzzy match to nearest option (Best Score)
-                # This fixes "YAP" vs "YAP (Satın Al)" and prevents "YAPMA" -> "YAP" overlap errors
-                import difflib
-                
-                best_match = decision
-                highest_ratio = 0.0
-                
-                for optic in voting_options:
-                    # Calculate similarity ratio
-                    ratio = difflib.SequenceMatcher(None, decision, optic.upper()).ratio()
-                    
-                    # Bonus for substring match (e.g. "YAP" inside "YAP (Satın Al)")
-                    if decision in optic.upper():
-                        ratio += 0.2
-                    
-                    if ratio > highest_ratio:
-                        highest_ratio = ratio
-                        best_match = optic
-                
-                # Threshold to accept match (e.g. 0.4)
-                if highest_ratio > 0.4:
-                    final_decision = best_match
-                else:
-                    final_decision = decision # Keep original if NO match found
-                
-                votes.append({
-                    "agent": d.name,
-                    "persona": d.persona.split(":")[0],
-                    "decision": final_decision,
-                    "reason": vote_data.get("reason", "...")
-                })
-            
-            # Determine Final Result
-            vote_counts = {}
-            for v in votes:
-                decision = v['decision']
-                vote_counts[decision] = vote_counts.get(decision, 0) + 1
-            
-            final_decision = max(vote_counts, key=vote_counts.get) if votes else "ÇEKİMSER"
+    # --- 3. SAVE MEMORY (VECTOR) ---
+    save_memory_vector(query, final_decision, f"Votes: {json.dumps(vote_counts, ensure_ascii=False)}")
+    
+    save_to_db("vote_results", json.dumps(votes, ensure_ascii=False))
+    yield {"type": "vote_results", "votes": votes}
+    # --- END OF DEBATE: DECISION REPORT ---
+    yield {"type": "typing", "agent": "Sistem"}
+    yield {"type": "message", "role": "Sistem", "content": "📋 **Nihai Karar Raporu Hazırlanıyor...**", "is_agent": False}
+    
+    full_history_text = "\n".join([f"{m['role']}: {m['content']}" for m in messages if m['role'] != "system"])
+    
+    report_prompt = f"""
+    GÖREV: Bu yönetim kurulu toplantısının "Nihai Karar Tutanağı"nı hazırla.
+    
+    TARTIŞMA GEÇMİŞİ:
+    {full_history_text}
+    
+    TALİMATLAR:
+    - Profesyonel, resmi ve net bir dil kullan.
+    - Markdown formatını kusursuz uygula (Başlıklar, Listeler, Kalın Yazı).
+    - Her ana başlık öncesinde ve sonrasında MUTLAKA bir boş satır bırak.
+    
+    ÇIKTI FORMATI (TAM OLARAK BU ŞABLONU KULLAN):
+    
+    # 📋 [Konu Başlığı] - Karar Raporu
+    
+    ## 1. Yönetici Özeti
+    (Buraya 2-3 cümlelik net bir özet gelecek. Ne konuşuldu, hangi engeller çıktı, sonuç ne oldu?)
+    
+    ## 2. Temel Bulgular (SWOT Analizi)
+    ### ✅ Fırsatlar & Artılar
+    - (Madde 1)
+    - (Madde 2)
+    
+    ### ⚠️ Riskler & Tehditler
+    - (Madde 1)
+    - (Madde 2)
+    
+    ## 3. Nihai Karar
+    **(Karar: ONAY / RED / ERTELEME / REVİZYON)**
+    (Kararın gerekçesini buraya yaz.)
+    
+    ## 4. Aksiyon Planı
+    1. **[Hemen]:** (İlk adım)
+    2. **[Orta Vade]:** (Sonraki adım)
+    3. **[Kritik Uyarı]:** (Varsa dikkat edilmesi gereken nokta)
+    
+    ---
+    *Rapor Tarihi: {current_date_str} | Raportör: Pocket Board AI*
+    """
+    
+    try:
+        report_content = moderator.generate_response([{"role": "user", "content": report_prompt}])
+        yield {"type": "message", "role": "Sistem", "content": report_content, "is_agent": False}
+        save_to_db("system", report_content)
+    except Exception as e:
+        yield {"type": "message", "role": "Sistem", "content": f"Rapor oluşturulamadı: {str(e)}", "is_agent": False}
 
-            # --- 3. SAVE MEMORY (VECTOR) ---
-            save_memory_vector(query, final_decision, f"Votes: {json.dumps(vote_counts, ensure_ascii=False)}")
-            
-            save_to_db("vote_results", json.dumps(votes, ensure_ascii=False))
-            yield {"type": "vote_results", "votes": votes}
-            # --- END OF DEBATE: DECISION REPORT ---
-            yield {"type": "typing", "agent": "Sistem"}
-            yield {"type": "message", "role": "Sistem", "content": "📋 **Nihai Karar Raporu Hazırlanıyor...**", "is_agent": False}
-            
-            full_history_text = "\n".join([f"{m['role']}: {m['content']}" for m in messages if m['role'] != "system"])
-            
-            report_prompt = f"""
-            GÖREV: Bu yönetim kurulu toplantısının "Nihai Karar Tutanağı"nı hazırla.
-            
-            TARTIŞMA GEÇMİŞİ:
-            {full_history_text}
-            
-            TALİMATLAR:
-            - Profesyonel, resmi ve net bir dil kullan.
-            - Markdown formatını kusursuz uygula (Başlıklar, Listeler, Kalın Yazı).
-            - Her ana başlık öncesinde ve sonrasında MUTLAKA bir boş satır bırak.
-            
-            ÇIKTI FORMATI (TAM OLARAK BU ŞABLONU KULLAN):
-            
-            # 📋 [Konu Başlığı] - Karar Raporu
-            
-            ## 1. Yönetici Özeti
-            (Buraya 2-3 cümlelik net bir özet gelecek. Ne konuşuldu, hangi engeller çıktı, sonuç ne oldu?)
-            
-            ## 2. Temel Bulgular (SWOT Analizi)
-            ### ✅ Fırsatlar & Artılar
-            - (Madde 1)
-            - (Madde 2)
-            
-            ### ⚠️ Riskler & Tehditler
-            - (Madde 1)
-            - (Madde 2)
-            
-            ## 3. Nihai Karar
-            **(Karar: ONAY / RED / ERTELEME / REVİZYON)**
-            (Kararın gerekçesini buraya yaz.)
-            
-            ## 4. Aksiyon Planı
-            1. **[Hemen]:** (İlk adım)
-            2. **[Orta Vade]:** (Sonraki adım)
-            3. **[Kritik Uyarı]:** (Varsa dikkat edilmesi gereken nokta)
-            
-            ---
-            *Rapor Tarihi: {current_date_str} | Raportör: Pocket Board AI*
-            """
-            
-            try:
-                report_content = moderator.generate_response([{"role": "user", "content": report_prompt}])
-                yield {"type": "message", "role": "Sistem", "content": report_content, "is_agent": False}
-                save_to_db("system", report_content)
-            except Exception as e:
-                yield {"type": "message", "role": "Sistem", "content": f"Rapor oluşturulamadı: {str(e)}", "is_agent": False}
-
-            yield {"type": "end", "reason": "max_turns"}
+    yield {"type": "end", "reason": "max_turns"}
